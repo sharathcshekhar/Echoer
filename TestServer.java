@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -13,14 +14,12 @@ public class TestServer {
 	private static int myPortNumber;
 	//private static final int MAX_CONNECTIONS = 7;
 	private static int otherPortNumber;
-	private static ArrayList<ConnectionStatus> OutGoingConnections;
+	private static ArrayList<ConnectionStatus> OutGoingConnections = new ArrayList<ConnectionStatus>();
 	public static int counterConnections;
 
 	public static void main(String[] args) {
-		String myPortNoStr = args[0];
-		String otherPortNoStr = args[1];
-		myPortNumber = Integer.parseInt(myPortNoStr);
-		otherPortNumber = Integer.parseInt(otherPortNoStr);
+		myPortNumber = Integer.parseInt(args[0]);
+		otherPortNumber = Integer.parseInt(args[1]);
 		Thread s = new Thread() {
 			public void run() {
 				try {
@@ -70,7 +69,7 @@ public class TestServer {
 				connectionStatus.setHostname(clientSocket.getInetAddress()
 						.getHostName());
 				connectionStatus
-						.setIp(clientSocket.getInetAddress().toString());
+						.setIp(clientSocket.getInetAddress().getHostAddress());
 				connectionStatus.setRemoteport(clientSocket.getPort());
 				connectionStatus.setLocalprt(myPortNumber);
 				connectionStatus.setClientSocket(clientSocket);
@@ -101,9 +100,31 @@ public class TestServer {
 				break;
 			case SENDTO:
 				break;
+			case SHOW:
+				Iterator<ConnectionStatus> itr = OutGoingConnections.iterator();
+				while (itr.hasNext()) {
+					ConnectionStatus connectionItr = itr.next();
+					System.out.println("\nConnection ID="+connectionItr.getConnectionID()+"\tIP Address="
+							+connectionItr.getIp()+"\tHost Name="+connectionItr.getHostname()+"\tLocal Port="
+							+connectionItr.getLocalprt()+"\tRemote Port="+connectionItr.getRemoteport());					
+				}
+				break;
 			case INFO:
+				InetAddress addr = InetAddress.getLocalHost();
+					System.out.println("\nIP Address="+addr.getHostAddress()+"\tHost Name="+addr.getHostName()+"\tTCP Port="
+							+myPortNumber+"\tUDP Port="+otherPortNumber);					
+				
 				break;
 			case DISCONNECT:
+				getClientSocketByConnectionID(Integer.parseInt(cmd_args[1])).close();
+				Iterator<ConnectionStatus> itrDC = OutGoingConnections.iterator();
+				while (itrDC.hasNext()) {
+					ConnectionStatus connectionItr = itrDC.next();
+					if(connectionItr.getConnectionID()==Integer.parseInt(cmd_args[1])){
+						OutGoingConnections.remove(connectionItr);
+						//System.out.println("arraysize after remove = "+OutGoingConnections.size());
+					}
+				}
 				break;
 			default:
 				System.out.println("Invalid command");
