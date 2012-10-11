@@ -122,15 +122,21 @@ public class TestServer {
 					ConnectionStatus connectionItr = itrDC.next();
 					if(connectionItr.getConnectionID()==Integer.parseInt(cmd_args[1])){
 						OutGoingConnections.remove(connectionItr);
-						//System.out.println("arraysize after remove = "+OutGoingConnections.size());
 					}
 				}
+				recentCount();
 				break;
 			default:
 				System.out.println("Invalid command");
 				break;
 			}
 		}
+	}
+
+	private static void recentCount() {
+		for(int i=0;i<OutGoingConnections.size();i++){
+			OutGoingConnections.get(i).setConnectionID(i+1);			
+		}		
 	}
 
 	private static void server() throws InterruptedException {
