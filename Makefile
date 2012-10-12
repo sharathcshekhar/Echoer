@@ -1,7 +1,7 @@
 FLAGS = 
 JAVAC = javac
 
-CLASSES = TestServer.java ConnectionStatus.java
+CLASSES = Echoer.java ConnectionStatus.java ValidateIP.java
 
 default: all
 	
