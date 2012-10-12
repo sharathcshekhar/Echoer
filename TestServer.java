@@ -17,56 +17,60 @@ public class TestServer {
 	private static ArrayList<ConnectionStatus> OutGoingConnections = new ArrayList<ConnectionStatus>();
 
 	public static void main(String[] args) {
-		int myPortNumber = 0, myUDPPortNumber = 0;
 		int counterConnections = 0;
+		int myPortNumber = 0;
+		int myUDPPortNumber = 0;
 		if(args.length != 2) {
-			System.out.println("Incorrect number of arguments. Eg \"Echoer 4242 4343\"");
+			System.out.println("Incorrect number of arguments. Eg \"Echoer 4242 4343\"\n");
 			System.exit(0);
 		}
-		String myPortNoStr = args[0];
-		String myUDPPortNoStr = args[1];
+		
 		try {
-			myPortNumber = Integer.parseInt(myPortNoStr);
-			myUDPPortNumber = Integer.parseInt(myUDPPortNoStr);
+			myPortNumber = Integer.parseInt(args[0]);
+			myUDPPortNumber = Integer.parseInt(args[1]);
 		} catch (NumberFormatException e) {
-			System.out.println("Illigal input, TCP and UDP port numbers have to be numbers");
+			System.out.println("Illigal input, TCP and UDP port numbers have to be numbers\n");
 			System.exit(0);
 		}
 		
 		if(myPortNumber > 65535 || myPortNumber < 1025) {
-			System.out.println("TCP Port number out of Range");
+			System.out.println("TCP Port number out of Range\n");
 			System.exit(0);
 		}
 		
 		if(myUDPPortNumber > 65535 || myUDPPortNumber < 1025) {
-			System.out.println("UDP port number out of Range");
+			System.out.println("UDP port number out of Range\n");
 			System.exit(0);
 		}
 		
 		if(myPortNumber == myUDPPortNumber){
-			System.out.println("Enter different port numbers for TCP and UDP");
+			System.out.println("Enter different port numbers for TCP and UDP\n");
 			System.exit(0);
 		}
 		
+		
+	
 		InetAddress addr = null;
 		try {
 			addr = InetAddress.getLocalHost();
 		} catch (UnknownHostException e) {
-			System.out.println("Unable to get the IP of the machine, exiting");
+			System.out.println("Unable to get the IP of the machine, exiting\n");
 			System.exit(0);
-			//e.printStackTrace();
 		}
 
 		class server implements Runnable {
 			private int portNumber;
+
 			public server(int portNumber) {
 				this.portNumber = portNumber;
 			}
+
 			public void run() {
 				serverThread(portNumber);
 			}
 		}
 		;
+
 		class UDPserver implements Runnable {
 			private int portNumber;
 
@@ -75,18 +79,13 @@ public class TestServer {
 			}
 
 			public void run() {
-				try {
 					UDPserverThread(portNumber);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
 			}
 		}
 		;
 
 		Thread s1 = new Thread(new server(myPortNumber));
 		s1.start();
-		// TODO spawn UDP
 		Thread udp_t = new Thread(new UDPserver(myUDPPortNumber));
 		udp_t.start();
 
@@ -99,7 +98,7 @@ public class TestServer {
 			try {
 				usrInput = cmdFromUser.readLine();
 			} catch(IOException e) {
-				System.out.println("Cannot parse command, please try again");
+				System.out.println("Cannot parse command, please try again\n");
 				continue;
 			}
 			if (usrInput.length() == 0) {
@@ -114,45 +113,28 @@ public class TestServer {
 			}
 			switch (cmd) {
 			case CONNECT:
-				String ipAddr = cmd_args[1];
-				if(cmd_args.length != 3) {
-					System.out.println("Too few arguments for connect");
-					continue;
+				if (!ValidateIP.validate(cmd_args[1])) {
+					System.out.println("Invalid IPv4 format\n");
 				}
+				else{
 				int portNo;
 				try {
 					portNo = Integer.parseInt(cmd_args[2]);
 				} catch (NumberFormatException e) {
-					System.out.println("Invalid Port number");
-					continue;
-				}	
-				try {
-					String[] ipFields = ipAddr.split("\\.");
-					if (ipFields.length != 4) {
-						System.out.println("Invalid IPv4 format");
-						continue;
-					}
-					for (String s : ipFields) {
-						int i = Integer.parseInt(s);
-						if ((i > 255) || (i < 0)) {
-							System.out.println("Invalid IPv4 format");
-							continue;
-						}
-					}
-				} catch (NumberFormatException e) {
-					System.out.println("Invalid IPv4 format");
-					continue;
+					System.out.println("Invalid Port number\n");
+					break;
 				}
+				
 				Socket clientSocket;
 				try {
-					clientSocket = new Socket(ipAddr, portNo);
+					clientSocket = new Socket(cmd_args[1], portNo);
 				} catch (UnknownHostException e) {
 					System.out.println("Cannot reach IP address");
 					//e.printStackTrace();
-					continue;
+					break;
 				} catch (IOException e) {
 					System.out.println("Error while connecting to server");
-					continue;
+					break;
 					//e.printStackTrace();
 				}
 				ConnectionStatus connectionStatus = new ConnectionStatus();
@@ -168,14 +150,15 @@ public class TestServer {
 				connectionStatus.setClientSocket(clientSocket);
 				// add connection status to list
 				OutGoingConnections.add(connectionStatus);
+				}
 				break;
 			case SEND:
 				System.out.println("Connection ID requested is " + cmd_args[1]);
 
 				// Shamefully ugly!
-				String msgToSend = usrInput
-						.substring(usrInput.indexOf(" ") + 1);
-				msgToSend = msgToSend.substring(msgToSend.indexOf(" ") + 1);
+				String msgToSend = "";
+				msgToSend = usrInput
+						.substring(usrInput.indexOf(" ") + 1).substring(msgToSend.indexOf(" ") + 1);
 
 				Socket sessionSocket = getClientSocketByConnectionID(Integer
 						.parseInt(cmd_args[1]));
@@ -192,17 +175,22 @@ public class TestServer {
 					toServer = new DataOutputStream(
 						sessionSocket.getOutputStream());
 				
-					System.out.println("cmd to send data received msg: "
+					System.out.println("command to send data received msg: "
 						+ msgToSend);
 					toServer.writeBytes(msgToSend + '\n');
 					serverReply = fromServer.readLine();
 				} catch(IOException Ex) {
-					System.out.println("Error creatinString serverReplyg Streams");
+					System.out.println("Error creatingString serverReplyg Streams");
 					break;
 				}
 				System.out.println("Server replied with " + serverReply);
 				break;
 			case SENDTO:
+				if (!ValidateIP.validate(cmd_args[1])) {
+					System.out.println("Invalid IPv4 format\n");
+					continue;
+				}
+				else{
 				// Shamefully ugly!
 				String msgToSendUDP = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
@@ -229,7 +217,7 @@ public class TestServer {
 				} catch(IOException e){
 					System.out.println("Error while contacting Server");
 					continue;
-				}
+				}}
 				break;
 			case SHOW:
 				Iterator<ConnectionStatus> itr = OutGoingConnections.iterator();
@@ -286,8 +274,7 @@ public class TestServer {
 		}
 	}
 
-	private static void serverThread(int myPortNumber)
-{
+	private static void serverThread(int myPortNumber) {
 		class serverResponseThread implements Runnable {
 			private Socket clientSocket;
 
@@ -297,13 +284,7 @@ public class TestServer {
 
 			public void run() {
 
-				try {
-					serverResponse(clientSocket);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+				serverResponse(clientSocket);
 			}
 		}
 		;
@@ -317,9 +298,7 @@ public class TestServer {
 			System.out.println("TCP Socket already in use.");
 		} catch (IOException e) {
 			System.out.println("Accept failed at " + myPortNumber);
-		} finally {
-			System.exit(0);
-		}
+		} 
 		while (true) {
 			try {
 				clientSocket = EchoerTCP.accept();
@@ -333,26 +312,45 @@ public class TestServer {
 		}
 	}
 
-	public static void serverResponse(Socket clientSocket) throws IOException,
-			InterruptedException {
+	public static void serverResponse(Socket clientSocket){ 
 		System.out
-				.println("Socket connection accepted, reading from the socket");
-		BufferedReader fromClient = new BufferedReader(new InputStreamReader(
-				clientSocket.getInputStream()));
-		DataOutputStream toClient = new DataOutputStream(
-				clientSocket.getOutputStream());
+				.println("Socket connection accepted, reading from the socket\n");
+		BufferedReader fromClient = null;
+		DataOutputStream toClient = null;
+		try {
+			fromClient = new BufferedReader(new InputStreamReader(
+					clientSocket.getInputStream()));
+			toClient = new DataOutputStream(
+					clientSocket.getOutputStream());
+		} catch (IOException e) {
+			System.out.println("Unable to connect to create reader or writer\n");
+		}
+
 		while (true) {
-			String clientMsg = fromClient.readLine();
+			String clientMsg = null;
+			try {
+				clientMsg = fromClient.readLine();
+			} catch (IOException e) {
+				System.out.println("Unable to read from client\n");
+			}
 			if (clientMsg == null) {
 				System.out.println("Client has disconnected");
 				break;
 			}
 			System.out.println("Client says " + clientMsg
 					+ " Server Echoes the same");
-			toClient.writeBytes(clientMsg + '\n');
+			try {
+				toClient.writeBytes(clientMsg + '\n');
+			} catch (IOException e) {
+				System.out.println("Unable to write to client\n");
+			}
 		}
-		fromClient.close();
-		toClient.close();
+		try {
+			fromClient.close();
+			toClient.close();
+		} catch (IOException e) {
+			System.out.println("Socket already closed\n");
+		}
 	}
 
 	public enum cmdEnum {
@@ -371,7 +369,6 @@ public class TestServer {
 	}
 
 	private static void UDPserverThread(int UDPport) {
-		// TODO Auto-generated method stub
 		System.out.println("My name is UDP Server");
 		DatagramSocket EchoerUDPSocket = null;
 		try {
