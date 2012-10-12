@@ -7,6 +7,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -16,36 +17,56 @@ public class TestServer {
 	private static ArrayList<ConnectionStatus> OutGoingConnections = new ArrayList<ConnectionStatus>();
 
 	public static void main(String[] args) {
-		int myPortNumber;
+		int myPortNumber = 0, myUDPPortNumber = 0;
 		int counterConnections = 0;
+		if(args.length != 2) {
+			System.out.println("Incorrect number of arguments. Eg \"Echoer 4242 4343\"");
+			System.exit(0);
+		}
 		String myPortNoStr = args[0];
-		myPortNumber = Integer.parseInt(myPortNoStr);
 		String myUDPPortNoStr = args[1];
-		int myUDPPortNumber = Integer.parseInt(myUDPPortNoStr);
+		try {
+			myPortNumber = Integer.parseInt(myPortNoStr);
+			myUDPPortNumber = Integer.parseInt(myUDPPortNoStr);
+		} catch (NumberFormatException e) {
+			System.out.println("Illigal input, TCP and UDP port numbers have to be numbers");
+			System.exit(0);
+		}
+		
+		if(myPortNumber > 65535 || myPortNumber < 1025) {
+			System.out.println("TCP Port number out of Range");
+			System.exit(0);
+		}
+		
+		if(myUDPPortNumber > 65535 || myUDPPortNumber < 1025) {
+			System.out.println("UDP port number out of Range");
+			System.exit(0);
+		}
+		
+		if(myPortNumber == myUDPPortNumber){
+			System.out.println("Enter different port numbers for TCP and UDP");
+			System.exit(0);
+		}
+		
 		InetAddress addr = null;
 		try {
 			addr = InetAddress.getLocalHost();
 		} catch (UnknownHostException e) {
-			e.printStackTrace();
+			System.out.println("Unable to get the IP of the machine, exiting");
+			System.exit(0);
+			//e.printStackTrace();
 		}
 
 		class server implements Runnable {
 			private int portNumber;
-
 			public server(int portNumber) {
 				this.portNumber = portNumber;
 			}
-
 			public void run() {
-				try {
-					serverThread(portNumber);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+				serverThread(portNumber);
 			}
 		}
 		;
-
 		class UDPserver implements Runnable {
 			private int portNumber;
 
@@ -266,7 +287,7 @@ public class TestServer {
 	}
 
 	private static void serverThread(int myPortNumber)
-			throws InterruptedException {
+{
 		class serverResponseThread implements Runnable {
 			private Socket clientSocket;
 
@@ -292,14 +313,19 @@ public class TestServer {
 		ServerSocket EchoerTCP = null;
 		try {
 			EchoerTCP = new ServerSocket(myPortNumber);
+		} catch (SocketException e) {
+			System.out.println("TCP Socket already in use.");
 		} catch (IOException e) {
-			System.out.println(e);
+			System.out.println("Accept failed at " + myPortNumber);
+		} finally {
+			System.exit(0);
 		}
 		while (true) {
 			try {
 				clientSocket = EchoerTCP.accept();
 			} catch (IOException e) {
 				System.out.println("Accept failed at " + myPortNumber);
+				continue;
 			}
 			// TODO store the connection information
 			Thread s3 = new Thread(new serverResponseThread(clientSocket));
@@ -344,16 +370,27 @@ public class TestServer {
 		return null;
 	}
 
-	private static void UDPserverThread(int UDPport) throws Exception {
+	private static void UDPserverThread(int UDPport) {
 		// TODO Auto-generated method stub
 		System.out.println("My name is UDP Server");
-		DatagramSocket EchoerUDPSocket = new DatagramSocket(UDPport);
+		DatagramSocket EchoerUDPSocket = null;
+		try {
+			EchoerUDPSocket = new DatagramSocket(UDPport);
+		} catch (SocketException e) {
+			System.out.println("UDP Socket already in use.");
+			System.exit(0);
+		}
 		byte[] receiveData = new byte[1024];
 		byte[] sendData = new byte[1024];
 		while (true) {
 			DatagramPacket receivePacket = new DatagramPacket(receiveData,
 					receiveData.length);
-			EchoerUDPSocket.receive(receivePacket);
+			try {
+				EchoerUDPSocket.receive(receivePacket);
+			} catch (IOException e) {
+				System.out.println("Failed to receive packet");
+				continue;
+			}
 			String sentence = new String(receivePacket.getData());
 			System.out
 					.println("Received connection request from Client with msg "
@@ -363,7 +400,12 @@ public class TestServer {
 			sendData = sentence.getBytes();
 			DatagramPacket sendPacket = new DatagramPacket(sendData,
 					sendData.length, IPAddress, port);
-			EchoerUDPSocket.send(sendPacket);
+			try {
+				EchoerUDPSocket.send(sendPacket);
+			} catch (IOException e) {
+				System.out.println("Failed to Echo the packet to client, ignoring");
+				continue;
+			}
 		}
 
 	}
