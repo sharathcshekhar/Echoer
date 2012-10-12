@@ -2,6 +2,8 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,51 +11,61 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public class TestServer {
-	//private static Object monitor12 = new Object();
-
-	private static int myPortNumber;
-	//private static final int MAX_CONNECTIONS = 7;
-	private static int otherPortNumber;
+	
 	private static ArrayList<ConnectionStatus> OutGoingConnections = new ArrayList<ConnectionStatus>();
-	public static int counterConnections;
+	
 
-	public static void main(String[] args) {
-		myPortNumber = Integer.parseInt(args[0]);
-		otherPortNumber = Integer.parseInt(args[1]);
-		Thread s = new Thread() {
+	public static void main(String[] args) throws Exception {
+		int myPortNumber;
+		int counterConnections = 0;
+		String myPortNoStr = args[0];
+		myPortNumber = Integer.parseInt(myPortNoStr);
+		String myUDPPortNoStr = args[1];
+		int myUDPPortNumber = Integer.parseInt(myUDPPortNoStr);
+		
+		class server implements Runnable {
+			private int portNumber;
+				public server(int portNumber) {
+				this.portNumber = portNumber;
+			}
+
 			public void run() {
-				try {
-					cli();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-
+					try {
+						serverThread(portNumber);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 			}
 		};
-		s.start();
-		Thread s1 = new Thread() {
-			public void run() {
-				try {
-					server();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+		
+		class UDPserver implements Runnable {
+			private int portNumber;
+				public UDPserver(int portNumber) {
+				this.portNumber = portNumber;
 			}
-		};
 
+			public void run() {
+					try {
+						UDPserverThread(portNumber);
+					} catch (Exception e) {
+						e.printStackTrace();
+					} 
+			}
+
+			
+		};
+		
+		Thread s1 = new Thread(new server(myPortNumber));
 		s1.start();
-	}
-
-	public static void cli() throws InterruptedException, IOException {
-
-		System.out.println("I am CLI thread");
-
+		//TODO spawn UDP		
+		Thread udp_t = new Thread(new UDPserver(myUDPPortNumber));
+		udp_t.start();
+		
 		BufferedReader cmdFromUser = new BufferedReader(new InputStreamReader(
 				System.in));
+		System.out.println("I am CLI:");
 		while (true) {
-			System.out.println("Enter the command:>");
+			System.out.print("Enter a command: >");
 			String usrInput = cmdFromUser.readLine();
 			String[] cmd_args = usrInput.split(" ");
 			cmdEnum cmd = cmdEnum.valueOf(cmd_args[0].toUpperCase());
@@ -75,30 +87,48 @@ public class TestServer {
 				connectionStatus.setClientSocket(clientSocket);
 				// add connection status to list
 				OutGoingConnections.add(connectionStatus);
-				// Thread s2 = new Thread(new clientThread());
-				// s2.start();
 				break;
 			case SEND:
-				// TODO send message to the connection ID by iterating
 				System.out.println("Connection ID requested is " + cmd_args[1]);
-				System.out.println("Message to be sent is " + cmd_args[2]);
-
-				String msgToSend = cmd_args[2].substring(cmd_args[2]
-						.indexOf(" "));
-
-				Socket sessionSocket = null;
-				sessionSocket = getClientSocketByConnectionID(Integer
+				
+				// Shamefully ugly!
+				String msgToSend = usrInput.substring(usrInput.indexOf(" ") + 1);
+				msgToSend = msgToSend.substring(msgToSend.indexOf(" ") + 1);
+				
+				Socket sessionSocket = getClientSocketByConnectionID(Integer
 						.parseInt(cmd_args[1]));
+				if(sessionSocket == null) {
+					System.out.println("session ID is returning NULL");
+					break;
+				}
 				BufferedReader fromServer = new BufferedReader(
 						new InputStreamReader(sessionSocket.getInputStream()));
 				DataOutputStream toServer = new DataOutputStream(
 						sessionSocket.getOutputStream());
-				System.out.println("cmd to send data received");
+				System.out.println("cmd to send data received msg: " + msgToSend);
 				toServer.writeBytes(msgToSend + '\n');
 				String serverReply = fromServer.readLine();
 				System.out.println("Server replied with " + serverReply);
 				break;
 			case SENDTO:
+				//System.out.println("Connection ID requested is " + cmd_args[1]);
+				// Shamefully ugly!
+				String msgToSendUDP = usrInput.substring(usrInput.indexOf(" ") + 1);
+				msgToSendUDP = msgToSendUDP.substring(msgToSendUDP.indexOf(" ") + 1);
+				msgToSendUDP = msgToSendUDP.substring(msgToSendUDP.indexOf(" ") + 1);
+				
+				byte [] receiveData = new byte[1024];
+				byte [] sendData = new byte[1024];
+				DatagramSocket clientUDPSocket = new DatagramSocket();
+				InetAddress IPAddress = InetAddress.getByName(cmd_args[1]);
+				int port = Integer.parseInt(cmd_args[2]);
+				sendData = msgToSendUDP.getBytes(); 
+				DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
+				clientUDPSocket.send(sendPacket);
+				DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+				clientUDPSocket.receive(receivePacket);
+				String reply = new String(receivePacket.getData());
+				System.out.println("Server replied with " + reply);
 				break;
 			case SHOW:
 				Iterator<ConnectionStatus> itr = OutGoingConnections.iterator();
@@ -112,7 +142,7 @@ public class TestServer {
 			case INFO:
 				InetAddress addr = InetAddress.getLocalHost();
 					System.out.println("\nIP Address="+addr.getHostAddress()+"\tHost Name="+addr.getHostName()+"\tTCP Port="
-							+myPortNumber+"\tUDP Port="+otherPortNumber);					
+							+myPortNumber+"\tUDP Port="+myUDPPortNumber);					
 				
 				break;
 			case DISCONNECT:
@@ -121,7 +151,7 @@ public class TestServer {
 				while (itrDC.hasNext()) {
 					ConnectionStatus connectionItr = itrDC.next();
 					if(connectionItr.getConnectionID()==Integer.parseInt(cmd_args[1])){
-						OutGoingConnections.remove(connectionItr);
+						itrDC.remove();
 					}
 				}
 				recentCount();
@@ -138,28 +168,25 @@ public class TestServer {
 			OutGoingConnections.get(i).setConnectionID(i+1);			
 		}		
 	}
-
-	private static void server() throws InterruptedException {
-		class serverThread implements Runnable {
+	private static void serverThread(int myPortNumber) throws InterruptedException {
+		class serverResponseThread implements Runnable {
 			private Socket clientSocket;
 
-			public serverThread(Socket clientSocket) {
+			public serverResponseThread(Socket clientSocket) {
 				this.clientSocket = clientSocket;
 			}
 
 			public void run() {
-				try {
-					try {
-						serverResponse(clientSocket);
-					} catch (InterruptedException e) {
+				
+			try {
+				serverResponse(clientSocket);
+			} catch (InterruptedException e) {
 						e.printStackTrace();
-					}
-				} catch (IOException e) {
+			} catch (IOException e) {
 					e.printStackTrace();
-				}
 			}
-		}
-		;
+			}
+		};
 
 		Socket clientSocket = new Socket();
 		System.out.println("My name is Server");
@@ -176,7 +203,7 @@ public class TestServer {
 				System.out.println("Accept failed at " + myPortNumber);
 			}
 			// TODO store the connection information
-			Thread s3 = new Thread(new serverThread(clientSocket));
+			Thread s3 = new Thread(new serverResponseThread(clientSocket));
 			s3.start();
 		}
 	}
@@ -196,7 +223,7 @@ public class TestServer {
 				break;
 			}
 			System.out.println("Client says " + clientMsg
-					+ "Server Echoes the same");
+					+ " Server Echoes the same");
 			toClient.writeBytes(clientMsg + '\n');
 		}
 		fromClient.close();
@@ -216,5 +243,25 @@ public class TestServer {
 			}
 		}
 		return null;
+	}
+	
+	private static void UDPserverThread(int UDPport) throws Exception {
+		// TODO Auto-generated method stub
+		System.out.println("My name is UDP Server");
+		DatagramSocket EchoerUDPSocket = new DatagramSocket(UDPport);
+		byte [] receiveData = new byte[1024];
+		byte [] sendData = new byte[1024];
+		while (true) {
+			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+			EchoerUDPSocket.receive(receivePacket);
+			String sentence = new String(receivePacket.getData());
+			System.out.println("Received connection request from Client with msg " + sentence);
+			InetAddress IPAddress = receivePacket.getAddress();
+			int port = receivePacket.getPort();
+			sendData = sentence.getBytes();
+			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
+			EchoerUDPSocket.send(sendPacket);
+		}
+
 	}
 }
