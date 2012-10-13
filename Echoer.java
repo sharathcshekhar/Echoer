@@ -16,15 +16,19 @@ import java.util.Iterator;
 public class Echoer {
 
 	private static ArrayList<ConnectionStatus> OutGoingConnections = new ArrayList<ConnectionStatus>();
+	private static ArrayList<ConnectionStatus> InComingConnections = new ArrayList<ConnectionStatus>();
+	private static int counterInConnections = 0;
 	
 	public static void main(String[] args) {
-		int counterConnections = 0;
+		int counterOutConnections = 0;
 		int tcpServerPort = 0;
 		int udpServerPort = 0;
 		if(args.length != 2) {
 			System.out.println("Incorrect number of arguments. Eg: \"java Echoer 4242 4343\"\n");
 			System.exit(1);
 		}
+
+		
 		try {
 			tcpServerPort = Integer.parseInt(args[0]);
 			udpServerPort = Integer.parseInt(args[1]);
@@ -47,14 +51,10 @@ public class Echoer {
 			System.out.println("Enter different port numbers for TCP and UDP\n");
 			System.exit(1);
 		}
-
-		InetAddress addr = null;
-		try {
-			addr = InetAddress.getLocalHost();
-		} catch (UnknownHostException e) {
-			System.out.println("Unable to get the IP of the machine, exiting\n");
-			System.exit(1);
-		}
+		
+		
+	//Get Public local IP address
+		InetAddress addr = ValidateIP.getLocalIPAddress();
 
 		class TCPServer implements Runnable {
 			private int portNumber;
@@ -99,6 +99,7 @@ public class Echoer {
 				System.out.println("Cannot parse command, please try again\n");
 				continue;
 			}
+
 			if (usrInput.length() == 0) {
 				continue;
 			}
@@ -109,58 +110,81 @@ public class Echoer {
 			} catch (Exception Ex) {
 				cmd = cmdEnum.INVALID;
 			}
-			switch (cmd) {
+			switchLoop:switch (cmd) {
 			case CONNECT:
 				if(cmd_args.length != 3)
 				{
 					System.out.println("Wrong arguments to connect");
 					break;
 				}
-				if (!ValidateIP.validate(cmd_args[1])) {
-					System.out.println("Invalid IPv4 format\n");
-				}
-				else{
-				int portNo;
-				try {
-					portNo = Integer.parseInt(cmd_args[2]);
-				} catch (NumberFormatException e) {
-					System.out.println("Invalid Port number\n");
-					break;
-				}
-				
-				Socket clientSocket;
-				try {
-					clientSocket = new Socket(cmd_args[1], portNo);
-				} catch (UnknownHostException e) {
-					System.out.println("Cannot reach IP address");
-					//e.printStackTrace();
-					break;
-				} catch (IOException e) {
-					System.out.println("Error while connecting to server");
-					break;
-					//e.printStackTrace();
-				}
-				ConnectionStatus connectionStatus = new ConnectionStatus();
-				counterConnections++;
-				connectionStatus.setActive(true);
-				connectionStatus.setConnectionID(counterConnections);
-				connectionStatus.setHostname(clientSocket.getInetAddress()
-						.getHostName());
-				connectionStatus.setIp(clientSocket.getInetAddress()
-						.getHostAddress());
-				connectionStatus.setRemoteport(clientSocket.getPort());
-				connectionStatus.setLocalprt(tcpServerPort);
-				connectionStatus.setClientSocket(clientSocket);
-				// add connection status to list
-				OutGoingConnections.add(connectionStatus);
-				}
+				if (!ValidateIP.validateIP(cmd_args[1]) && !ValidateIP.validateHost(cmd_args[1])) {
+						System.out.println("Invalid IP address or hostname");			
+						break;
+				} 
+				else
+					try {//test for local, loopback and self connection
+						if("127.0.0.1".equals(cmd_args[1])||InetAddress.getLocalHost().getHostAddress().equals(cmd_args[1])||
+								ValidateIP.getLocalIPAddress().getHostAddress().equals(cmd_args[1])){
+									System.out.println("Please enter hostname other than Local host");
+								}
+						  else{
+									//check for duplicate ip address and hostname
+									Iterator<ConnectionStatus> itr = OutGoingConnections.iterator();
+									while(itr.hasNext()){
+										ConnectionStatus connectionStatusItr = itr.next();
+											if(connectionStatusItr.getIp().equals(cmd_args[1])||connectionStatusItr.getHostname().equals(cmd_args[1])){
+												System.out.println("Please use existing connection, duplicate address not allowed");
+												break switchLoop;
+											}
+										} 
+								int portNo;
+								try {
+									portNo = Integer.parseInt(cmd_args[2]);
+								} catch (NumberFormatException e) {
+									System.out.println("Invalid Port number");
+									break;
+								}
+								
+								Socket clientSocket;
+								try {
+									clientSocket = new Socket(cmd_args[1], portNo);
+								} catch (UnknownHostException e) {
+									System.out.println("Cannot reach IP address");
+									//e.printStackTrace();
+									break;
+								} catch (IOException e) {
+									System.out.println("Error while connecting to server");
+									break;
+									//e.printStackTrace();
+								}
+								System.out.println("Connected with server");
+								ConnectionStatus connectionStatus = new ConnectionStatus();
+								counterOutConnections++;
+								connectionStatus.setConnectionID(counterOutConnections);
+								connectionStatus.setHostname(clientSocket.getInetAddress()
+										.getHostName());
+								connectionStatus.setIp(clientSocket.getInetAddress()
+										.getHostAddress());
+								connectionStatus.setRemoteport(clientSocket.getPort());
+								connectionStatus.setLocalprt(tcpServerPort);
+								connectionStatus.setClientSocket(clientSocket);
+								// add connection status to list
+								OutGoingConnections.add(connectionStatus);
+								}
+					} catch (UnknownHostException e1) {
+						System.out.println("Unknown host exception");
+					}
 				break;
 			case SEND:
-				if(cmd_args.length < 3)
+				if(cmd_args.length != 3)
 				{
-					System.out.println("Too few arguments to send");
+					System.out.println("Invalid arguments");
 					break;
 				}
+				if (!ValidateIP.validateIP(cmd_args[1]) && !ValidateIP.validateHost(cmd_args[1])) {
+					System.out.println("Invalid IPv4 or hostname format");
+					break;
+				} 
 				System.out.println("Connection ID requested is " + cmd_args[1]);
 
 				// Shamefully ugly!
@@ -194,13 +218,13 @@ public class Echoer {
 				System.out.println("Server replied with " + serverReply);
 				break;
 			case SENDTO:
-				if(cmd_args.length < 4)
+				if(cmd_args.length != 3)
 				{
 					System.out.println("Too few arguments to sendto");
 					break;
 				}
-				if (!ValidateIP.validate(cmd_args[1])) {
-					System.out.println("Invalid IPv4 format\n");
+				if (!ValidateIP.validateIP(cmd_args[1])) {
+					System.out.println("Invalid IPv4 format");
 					continue;
 				}
 				else{
@@ -238,15 +262,29 @@ public class Echoer {
 					System.out.println("Too many arguments to show");
 					break;
 				}
+				ConnectionStatus connectionItr;
+				if(!OutGoingConnections.isEmpty())
+					System.out.println("Outgoing Connections: ");
 				Iterator<ConnectionStatus> itr = OutGoingConnections.iterator();
 				while (itr.hasNext()) {
-					ConnectionStatus connectionItr = itr.next();
-					System.out.println("\nConnection ID="
+					connectionItr = itr.next();
+					System.out.println("Connection ID="
 							+ connectionItr.getConnectionID() + "\tIP Address="
 							+ connectionItr.getIp() + "\tHost Name="
 							+ connectionItr.getHostname() + "\tLocal Port="
 							+ connectionItr.getLocalprt() + "\tRemote Port="
-							+ connectionItr.getRemoteport());
+							+ connectionItr.getRemoteport()+" ");
+				}
+				if(!InComingConnections.isEmpty())
+					System.out.println("Incoming Connections: ");
+				itr = InComingConnections.iterator();
+				while (itr.hasNext()) {
+					connectionItr = itr.next();
+					System.out.println("IP Address="
+							+ connectionItr.getIp() + "\tHost Name="
+							+ connectionItr.getHostname() + "\tLocal Port="
+							+ connectionItr.getLocalprt() + "\tRemote Port="
+							+ connectionItr.getRemoteport()+" ");
 				}
 				break;
 			case INFO:
@@ -255,9 +293,9 @@ public class Echoer {
 					System.out.println("Too many arguments to info");
 					break;
 				}
-				System.out.println("\nIP Address=" + addr.getHostAddress()
+				System.out.println("IP Address=" + addr.getHostAddress()
 						+ "\tHost Name=" + addr.getHostName() + "\tTCP Port="
-						+ tcpServerPort + "\tUDP Port=" + udpServerPort);
+						+ tcpServerPort + "\tUDP Port=" + udpServerPort+" ");
 
 				break;
 			case DISCONNECT:
@@ -281,13 +319,17 @@ public class Echoer {
 				Iterator<ConnectionStatus> itrDC = OutGoingConnections
 						.iterator();
 				while (itrDC.hasNext()) {
-					ConnectionStatus connectionItr = itrDC.next();
+					connectionItr = itrDC.next();
 					if (connectionItr.getConnectionID() == Integer
 							.parseInt(cmd_args[1])) {
 						itrDC.remove();
+						if(counterOutConnections>0)
+						counterOutConnections--;
 					}
 				}
-				recentCount();
+				
+				//reset outgoing connection count
+				resetCountOutgoing();
 				break;
 			case BYE:
 				System.exit(0);
@@ -299,12 +341,23 @@ public class Echoer {
 		}
 	}
 
-	private static void recentCount() {
+	/*
+	 * reset outgoing connection count
+	 */
+	private static void resetCountOutgoing() {
 		for (int i = 0; i < OutGoingConnections.size(); i++) {
-			OutGoingConnections.get(i).setConnectionID(i + 1);
+			OutGoingConnections.get(i).setConnectionID(i+1);
 		}
 	}
-
+	/*
+	 * reset incoming connection count
+	 */
+	private static void resetCountIncoming() {
+		for (int i = 0; i < InComingConnections.size(); i++) {
+			InComingConnections.get(i).setConnectionID(i+1);
+		}
+	}
+	
 	private static void TCPServerThread(int tcpServerPort) {
 		class serverResponseThread implements Runnable {
 			private Socket clientSocket;
@@ -330,15 +383,23 @@ public class Echoer {
 		} catch (IOException e) {
 			System.out.println("Accept failed at " + tcpServerPort);
 			System.exit(1);
-		} 
+		}
 		while (true) {
 			try {
 				clientSocket = EchoerTCP.accept();
+				//maintain incoming list
+				ConnectionStatus incomingConnection = new ConnectionStatus();
+				incomingConnection.setConnectionID(counterInConnections++);
+				incomingConnection.setClientSocket(clientSocket);
+				incomingConnection.setHostname(clientSocket.getInetAddress().getHostName());
+				incomingConnection.setIp(clientSocket.getInetAddress().getHostAddress());
+				incomingConnection.setLocalprt(clientSocket.getLocalPort());
+				incomingConnection.setRemoteport(clientSocket.getPort());
+				InComingConnections.add(incomingConnection);
 			} catch (IOException e) {
 				System.out.println("Accept failed at " + tcpServerPort);
 				continue;
 			}
-			// TODO store the connection information
 			Thread s3 = new Thread(new serverResponseThread(clientSocket));
 			s3.start();
 		}
@@ -346,7 +407,7 @@ public class Echoer {
 
 	public static void serverResponse(Socket clientSocket){ 
 		System.out
-				.println("Socket connection accepted, reading from the socket\n");
+				.println("Socket connection accepted, reading from the socket");
 		BufferedReader fromClient = null;
 		DataOutputStream toClient = null;
 		try {
@@ -355,7 +416,7 @@ public class Echoer {
 			toClient = new DataOutputStream(
 					clientSocket.getOutputStream());
 		} catch (IOException e) {
-			System.out.println("Unable to connect to create reader or writer\n");
+			System.out.println("Unable to connect to create reader or writer");
 		}
 
 		while (true) {
@@ -363,10 +424,23 @@ public class Echoer {
 			try {
 				clientMsg = fromClient.readLine();
 			} catch (IOException e) {
-				System.out.println("Unable to read from client\n");
+				System.out.println("Unable to read from client");
 			}
 			if (clientMsg == null) {
 				System.out.println("Client has disconnected");
+				Iterator<ConnectionStatus> itrDC = InComingConnections
+						.iterator();
+				ConnectionStatus connectionItr;
+				//reset Incoming connections
+				while (itrDC.hasNext()) {
+					connectionItr = itrDC.next();
+					if (connectionItr.getIp().equals(clientSocket.getInetAddress().getHostAddress())) {
+						itrDC.remove();
+						if(counterInConnections>0)
+						counterInConnections--;
+					}
+				}
+				resetCountIncoming();
 				break;
 			}
 			System.out.println("Client says " + clientMsg
@@ -374,19 +448,19 @@ public class Echoer {
 			try {
 				toClient.writeBytes(clientMsg + '\n');
 			} catch (IOException e) {
-				System.out.println("Unable to write to client\n");
+				System.out.println("Unable to write to client");
 			}
 		}
 		try {
 			fromClient.close();
 			toClient.close();
 		} catch (IOException e) {
-			System.out.println("Socket already closed\n");
+			System.out.println("Socket already closed");
 		}
 	}
 
 	public enum cmdEnum {
-		CONNECT, SEND, SENDTO, SHOW, INFO, DISCONNECT, BYE, INVALID
+		CONNECT, SEND, SENDTO, SHOW, INFO, DISCONNECT, INVALID, BYE
 	}
 
 	public static Socket getClientSocketByConnectionID(int connectionId) {
