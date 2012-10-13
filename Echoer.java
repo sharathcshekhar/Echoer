@@ -218,9 +218,9 @@ public class Echoer {
 				System.out.println("Server replied with " + serverReply);
 				break;
 			case SENDTO:
-				if(cmd_args.length != 3)
+				if(cmd_args.length != 4)
 				{
-					System.out.println("Too few arguments to sendto");
+					System.out.println("Invalid arguments to sendto");
 					break;
 				}
 				if (!ValidateIP.validateIP(cmd_args[1])) {
@@ -228,13 +228,9 @@ public class Echoer {
 					continue;
 				}
 				else{
-				// Shamefully ugly!
 				String msgToSendUDP = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
-				msgToSendUDP = msgToSendUDP
-						.substring(msgToSendUDP.indexOf(" ") + 1);
-				msgToSendUDP = msgToSendUDP
-						.substring(msgToSendUDP.indexOf(" ") + 1);
+				msgToSendUDP=msgToSendUDP.substring(msgToSendUDP.indexOf(" ") + 1).substring(msgToSendUDP.indexOf(" ") + 1);
 
 				byte[] receiveData = new byte[1024];
 				byte[] sendData = new byte[1024];
@@ -496,7 +492,7 @@ public class Echoer {
 			}
 			String sentence = new String(receivePacket.getData());
 			System.out
-					.println("Received connection request from Client with msg "
+					.println("Received connection request from Client:"+EchoerUDPSocket.getInetAddress().getHostAddress()+" with msg "
 							+ sentence);
 			InetAddress IPAddress = receivePacket.getAddress();
 			int port = receivePacket.getPort();
