@@ -115,58 +115,66 @@ switchLoop:	switch (cmd) {
 					System.out.println("Wrong arguments to connect");
 					break;
 				}
-				if (!ValidateIP.validateIP(cmd_args[1]) && !ValidateIP.validateHost(cmd_args[1])) {
-						System.out.println("Invalid IP address or hostname");			
-						break;
-				} 
-				else
-					try {//test for local, loopback and self connection
-						if("127.0.0.1".equals(cmd_args[1])||InetAddress.getLocalHost().getHostAddress().equals(cmd_args[1])||
-								ValidateIP.getLocalIPAddress().getHostAddress().equals(cmd_args[1])){
-								System.out.println("Please enter hostname other than Local host");
-								}
-						  else{
-								//check for duplicate ip address and hostname
-								Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
-								while(itr.hasNext()){
-									ConnectionStatus connectionStatusItr = itr.next();
-									if(connectionStatusItr.getIp().equals(cmd_args[1])||connectionStatusItr.getHostname().equals(cmd_args[1])){
-										System.out.println("Please use existing connection, duplicate address not allowed");
-										break switchLoop;
-									}
-								} 
-								int portNo = ValidateIP.StringtoPort(cmd_args[2]);
-								if(portNo == -1){
-									break;
-								}
-								
-								Socket clientSocket;
-								try {
-									clientSocket = new Socket(cmd_args[1], portNo);
-								} catch (UnknownHostException e) {
-									System.out.println("Cannot reach IP address");
-									break;
-								} catch (IOException e) {
-									System.out.println("Error while connecting to server");
-									break;
-								}
-								System.out.println("Connected with server");
-								ConnectionStatus connectionStatus = new ConnectionStatus();
-								counterOutConnections++;
-								connectionStatus.setConnectionID(counterOutConnections);
-								connectionStatus.setHostname(clientSocket.getInetAddress()
-										.getHostName());
-								connectionStatus.setIp(clientSocket.getInetAddress()
-										.getHostAddress());
-								connectionStatus.setRemoteport(clientSocket.getPort());
-								connectionStatus.setLocalprt(tcpServerPort);
-								connectionStatus.setClientSocket(clientSocket);
-								// add connection status to list
-								connectionListStore.getOutGoingConnections().add(connectionStatus);
-								}
-					} catch (UnknownHostException e1) {
-						System.out.println("Unknown host exception");
+				String server_addr = cmd_args[1];
+				boolean isIP = ValidateIP.validateIP(server_addr);
+				if(isIP){
+					if(server_addr.equals("127.0.0.1") || 
+							server_addr.equals(ValidateIP.getLocalIPAddress().getHostAddress())){
+						System.out.println("Enter the IP of a different machine");
 					}
+				} else {
+					 try {
+						if(server_addr.equals("localhost") ||
+								 server_addr.equals(InetAddress.getLocalHost().getHostAddress())) {
+							 System.out.println("Enter hostname of a different machine"); 
+						 }
+					} catch (UnknownHostException e) {
+						System.out.println("Unknown localhost. Continuing");
+					}
+				}
+				
+				Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
+				while(itr.hasNext()){
+					ConnectionStatus connectionStatusItr = itr.next();
+					if(isIP){
+						if(connectionStatusItr.getIp().equals(server_addr)){
+								System.out.println("Please use existing connection, duplicate address not allowed");
+								break switchLoop;
+							} 
+					} else {
+						if(server_addr.equals(connectionStatusItr.getHostname())){
+							System.out.println("Please use existing connection, duplicate address not allowed");
+							break switchLoop;
+						}
+					}
+				} 
+				int portNo = ValidateIP.StringtoPort(cmd_args[2]);
+				if(portNo == -1){
+					break;
+				}
+				Socket clientSocket;
+				try {
+					clientSocket = new Socket(server_addr, portNo);
+				} catch (UnknownHostException e) {
+					System.out.println("Cannot reach IP address");
+					break;
+				} catch (IOException e) {
+					System.out.println("Error while connecting to server");
+					break;
+				}
+				System.out.println("Connected with server at : "+server_addr);
+				ConnectionStatus connectionStatus = new ConnectionStatus();
+				counterOutConnections++;
+				connectionStatus.setConnectionID(counterOutConnections);
+				connectionStatus.setHostname(clientSocket.getInetAddress()
+						.getHostName());
+				connectionStatus.setIp(clientSocket.getInetAddress()
+							.getHostAddress());
+				connectionStatus.setRemoteport(clientSocket.getPort());
+				connectionStatus.setLocalprt(tcpServerPort);
+				connectionStatus.setClientSocket(clientSocket);
+				// add connection status to list
+				connectionListStore.getOutGoingConnections().add(connectionStatus);
 				break;
 			case SEND:
 				if(cmd_args.length < 3)
@@ -231,15 +239,11 @@ switchLoop:	switch (cmd) {
 				
 				String msgToSendUDP = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
-				System.out.println("msg = " + msgToSendUDP);
 				msgToSendUDP = msgToSendUDP.substring(
 						msgToSendUDP.indexOf(" ") + 1);
-				System.out.println("msg = " + msgToSendUDP);
 				msgToSendUDP = msgToSendUDP.substring(
 						msgToSendUDP.indexOf(" ") + 1);
 				
-				System.out.println("msg = " + msgToSendUDP);
-
 				byte[] receiveData = new byte[1024];
 				byte[] sendData = new byte[1024];
 				try{
@@ -274,9 +278,9 @@ switchLoop:	switch (cmd) {
 				ConnectionStatus connectionItr;
 				if(!connectionListStore.checkEmpty("out"))
 					System.out.println("Outgoing Connections: ");
-				Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
-				while (itr.hasNext()) {
-					connectionItr = itr.next();
+				Iterator<ConnectionStatus> itr1 = connectionListStore.getIterator("out");
+				while (itr1.hasNext()) {
+					connectionItr = itr1.next();
 					System.out.println("Connection ID="
 							+ connectionItr.getConnectionID() + "\tIP Address="
 							+ connectionItr.getIp() + "\tHost Name="
