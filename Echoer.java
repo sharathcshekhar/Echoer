@@ -15,9 +15,9 @@ import java.util.Iterator;
 
 public class Echoer {
 
-	private static ArrayList<ConnectionStatus> OutGoingConnections = new ArrayList<ConnectionStatus>();
-	private static ArrayList<ConnectionStatus> InComingConnections = new ArrayList<ConnectionStatus>();
+	
 	private static int counterInConnections = 0;
+	private static ConnectionListStore connectionListStore = new ConnectionListStore();
 	
 	public static void main(String[] args) {
 		int counterOutConnections = 0;
@@ -129,7 +129,7 @@ public class Echoer {
 								}
 						  else{
 									//check for duplicate ip address and hostname
-									Iterator<ConnectionStatus> itr = OutGoingConnections.iterator();
+									Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
 									while(itr.hasNext()){
 										ConnectionStatus connectionStatusItr = itr.next();
 											if(connectionStatusItr.getIp().equals(cmd_args[1])||connectionStatusItr.getHostname().equals(cmd_args[1])){
@@ -169,7 +169,7 @@ public class Echoer {
 								connectionStatus.setLocalprt(tcpServerPort);
 								connectionStatus.setClientSocket(clientSocket);
 								// add connection status to list
-								OutGoingConnections.add(connectionStatus);
+								connectionListStore.getOutGoingConnections().add(connectionStatus);
 								}
 					} catch (UnknownHostException e1) {
 						System.out.println("Unknown host exception");
@@ -259,9 +259,9 @@ public class Echoer {
 					break;
 				}
 				ConnectionStatus connectionItr;
-				if(!OutGoingConnections.isEmpty())
+				if(!connectionListStore.checkEmpty("out"))
 					System.out.println("Outgoing Connections: ");
-				Iterator<ConnectionStatus> itr = OutGoingConnections.iterator();
+				Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
 				while (itr.hasNext()) {
 					connectionItr = itr.next();
 					System.out.println("Connection ID="
@@ -271,9 +271,9 @@ public class Echoer {
 							+ connectionItr.getLocalprt() + "\tRemote Port="
 							+ connectionItr.getRemoteport()+" ");
 				}
-				if(!InComingConnections.isEmpty())
+				if(!connectionListStore.checkEmpty("in"))
 					System.out.println("Incoming Connections: ");
-				itr = InComingConnections.iterator();
+				itr = connectionListStore.getIterator("in");
 				while (itr.hasNext()) {
 					connectionItr = itr.next();
 					System.out.println("IP Address="
@@ -312,8 +312,7 @@ public class Echoer {
 					e.printStackTrace();
 					break;
 				}
-				Iterator<ConnectionStatus> itrDC = OutGoingConnections
-						.iterator();
+				Iterator<ConnectionStatus> itrDC = connectionListStore.getIterator("out");
 				while (itrDC.hasNext()) {
 					connectionItr = itrDC.next();
 					if (connectionItr.getConnectionID() == Integer
@@ -325,7 +324,7 @@ public class Echoer {
 				}
 				
 				//reset outgoing connection count
-				resetCountOutgoing();
+				connectionListStore.resetCount("out");
 				break;
 			case BYE:
 				System.exit(0);
@@ -337,22 +336,6 @@ public class Echoer {
 		}
 	}
 
-	/*
-	 * reset outgoing connection count
-	 */
-	private static void resetCountOutgoing() {
-		for (int i = 0; i < OutGoingConnections.size(); i++) {
-			OutGoingConnections.get(i).setConnectionID(i+1);
-		}
-	}
-	/*
-	 * reset incoming connection count
-	 */
-	private static void resetCountIncoming() {
-		for (int i = 0; i < InComingConnections.size(); i++) {
-			InComingConnections.get(i).setConnectionID(i+1);
-		}
-	}
 	
 	private static void TCPServerThread(int tcpServerPort) {
 		class serverResponseThread implements Runnable {
@@ -391,7 +374,7 @@ public class Echoer {
 				incomingConnection.setIp(clientSocket.getInetAddress().getHostAddress());
 				incomingConnection.setLocalprt(clientSocket.getLocalPort());
 				incomingConnection.setRemoteport(clientSocket.getPort());
-				InComingConnections.add(incomingConnection);
+				connectionListStore.getInComingConnections().add(incomingConnection);
 			} catch (IOException e) {
 				System.out.println("Accept failed at " + tcpServerPort);
 				continue;
@@ -424,8 +407,7 @@ public class Echoer {
 			}
 			if (clientMsg == null) {
 				System.out.println("Client has disconnected");
-				Iterator<ConnectionStatus> itrDC = InComingConnections
-						.iterator();
+				Iterator<ConnectionStatus> itrDC = connectionListStore.getIterator("in");
 				ConnectionStatus connectionItr;
 				//reset Incoming connections
 				while (itrDC.hasNext()) {
@@ -436,7 +418,7 @@ public class Echoer {
 						counterInConnections--;
 					}
 				}
-				resetCountIncoming();
+				connectionListStore.resetCount("in");
 				break;
 			}
 			System.out.println("Client says " + clientMsg
@@ -460,7 +442,7 @@ public class Echoer {
 	}
 
 	public static Socket getClientSocketByConnectionID(int connectionId) {
-		Iterator<ConnectionStatus> itr = OutGoingConnections.iterator();
+		Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
 		while (itr.hasNext()) {
 			ConnectionStatus connectionItr = itr.next();
 			if (connectionItr.getConnectionID() == connectionId) {
