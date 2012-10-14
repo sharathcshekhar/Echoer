@@ -216,7 +216,16 @@ public class Echoer {
 					toServer.writeBytes(msgToSend + '\n');
 					serverReply = fromServer.readLine();
 				} catch(IOException Ex) {
-					System.out.println("Error creatingString serverReplyg Streams");
+					System.out.println("Error reading from server, session abruptly ended");
+					Iterator<ConnectionStatus> itrDC = connectionListStore.getIterator("out");
+					while (itrDC.hasNext()) {
+						ConnectionStatus connectionItr = itrDC.next();
+						if (connectionItr.getConnectionID() == connectionID) {
+							itrDC.remove();
+							if(counterOutConnections>0)
+							counterOutConnections--;
+						}
+					}
 					break;
 				}
 				System.out.println("Server replied with " + serverReply);
