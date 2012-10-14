@@ -1,12 +1,12 @@
 FLAGS = 
 JAVAC = javac
 
-CLASSES = Echoer.java ConnectionStatus.java ValidateIP.java
+CLASSES = Echoer.java ConnectionStatus.java ValidateIP.java ConnectionListStore.java
 
 default: all
 	
 all:
-	$(JAVAC) $(FLAGS) $(CLASSES) 
+	@$(JAVAC) $(FLAGS) $(CLASSES) 
 
 clean:
-	rm -rf *.class
+	@rm -rf *.class

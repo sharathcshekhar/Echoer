@@ -19,7 +19,7 @@ public class ValidateIP {
 			"+)*(?:\\.[A-Za-z0-9]" +
 			"+(?:-[A-Za-z0-9]+)*)*";
 
-	/**
+	/*
 	 * validate ip and return true or false
 	 */
 	public static boolean validateIP(final String ip) {
@@ -28,7 +28,7 @@ public class ValidateIP {
 		return matcher.matches();
 	}
 	
-	/**
+	/*
 	 * validate host and return true or false
 	 */
 	public static boolean validateHost(final String host) {
@@ -38,58 +38,62 @@ public class ValidateIP {
 	}
 
 	public static InetAddress getLocalIPAddress() {
-		InetAddress IPAddress = null;
+		InetAddress IP = null;
 		/*
-		 * Method suggested by TA Looks like both these peices of code is
-		 * working only on linux machines and not on windows. May be you have to
-		 * do another check for OS if you care. Strictly it need not be UDP
-		 * also. You can do a TCP connect() to google.com as I told. He TA says
-		 * UDP, make him happy.
+		 * Method suggested by TA
 		 */
 		try {
-			IPAddress = InetAddress.getByName("8.8.8.8");
-		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		DatagramSocket clientUDPSocket = null;
-		try {
+			DatagramSocket clientUDPSocket = null;
 			clientUDPSocket = new DatagramSocket();
+			clientUDPSocket.connect(InetAddress.getByName("8.8.8.8"), 53); // 53 - DNS port no.
+			IP = clientUDPSocket.getLocalAddress();
+			clientUDPSocket.close();
 		} catch (SocketException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			return null;
 		}
-
-		clientUDPSocket.connect(IPAddress, 53); // 53 is the well-known port
-												// number used by DNS
-		InetAddress IP = clientUDPSocket.getLocalAddress();
-
-		//System.out.println("IP udp:" + IP.getHostAddress());
+		catch (UnknownHostException e1) {
+			return null;
+		}
 		return IP;
-		/* End of method suggested by TA */
-
-		// NOTE: Keep both the code.. and comment out the code you don't like.
-		// We can test the code and keep the one that works
-
-		/* A better Method in all ways */
-
-		/*Enumeration<NetworkInterface> nis;
+		
+		// Works even if the Network is not connected to the Internet
+		/*
+		
+		Enumeration<NetworkInterface> netwrkIfs;
 		try {
-			nis = NetworkInterface.getNetworkInterfaces();
+			netwrkIfs = NetworkInterface.getNetworkInterfaces();
 		} catch (SocketException e) {
 			return null;
 		}
-		while (nis.hasMoreElements()) {
-			NetworkInterface ni = nis.nextElement();
-			Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
-			while (inetAddresses.hasMoreElements()) {
-				InetAddress ia = inetAddresses.nextElement();
-				if (!ia.isLinkLocalAddress() && !ia.isLoopbackAddress()) {
-					return ia.getHostAddress();
+		while (netwrkIfs.hasMoreElements()) {
+			NetworkInterface netwrkIf = netwrkIfs.nextElement();
+			Enumeration<InetAddress> addr = netwrkIf.getInetAddresses();
+			while (addr.hasMoreElements()) {
+				InetAddress addr_n = addr.nextElement();
+				if (!addr_n.isLinkLocalAddress() && !addr_n.isLoopbackAddress()) {
+					return addr_n.getHostAddress();
 				}
 			}
 		}
-		return null;*/
+		return null;
+		
+		*/
 	}
 
+	public static int StringtoPort(String s)
+	{
+		int port;
+		try{
+			port = Integer.parseInt(s);
+		} catch (NumberFormatException e) {
+			System.out.println("Illigal input, port has to be a number");
+			return -1;
+		}
+	
+		if(port > 65535 || port < 1025) {
+			System.out.println("Port number out of range. Port number should be between 1025 and 65535");
+			return -1;
+		}
+		return port;
+	}
 }

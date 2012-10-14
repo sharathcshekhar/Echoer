@@ -9,9 +9,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Iterator;
-//import java.util.logging.Logger;
 
 public class Echoer {
 
@@ -21,39 +19,23 @@ public class Echoer {
 	
 	public static void main(String[] args) {
 		int counterOutConnections = 0;
-		int tcpServerPort = 0;
-		int udpServerPort = 0;
 		if(args.length != 2) {
-			System.out.println("Incorrect number of arguments. Eg: \"java Echoer 4242 4343\"");
+			System.out.println("Incorrect number of arguments. Usage: \"java Echoer 4242 4343\"");
 			System.exit(1);
 		}
 
+		int tcpServerPort = ValidateIP.StringtoPort(args[0]);
+		int udpServerPort = ValidateIP.StringtoPort(args[1]);
 		
-		try {
-			tcpServerPort = Integer.parseInt(args[0]);
-			udpServerPort = Integer.parseInt(args[1]);
-		} catch (NumberFormatException e) {
-			System.out.println("Illigal input, TCP and UDP port numbers have to be numbers");
+		if(tcpServerPort == -1 || udpServerPort == -1){
 			System.exit(1);
 		}
-		
-		if(tcpServerPort > 65535 || tcpServerPort < 1025) {
-			System.out.println("TCP Port number out of range. Port number should be between 1025 and 65535");
-			System.exit(1);
-		}
-		
-		if(udpServerPort > 65535 || udpServerPort < 1025) {
-			System.out.println("UDP port number out of Range. Port number should be between 1025 and 65535");
-			System.exit(1);
-		}
-		
 		if(tcpServerPort == udpServerPort){
 			System.out.println("Enter different port numbers for TCP and UDP");
 			System.exit(1);
 		}
-		
-		
-	//Get Public local IP address
+
+		//Get Public local IP address
 		InetAddress addr = ValidateIP.getLocalIPAddress();
 
 		class TCPServer implements Runnable {
@@ -89,7 +71,7 @@ public class Echoer {
 
 		BufferedReader cmdFromUser = new BufferedReader(new InputStreamReader(
 				System.in));
-	//	System.out.println("I am CLI:");
+
 		while (true) {
 			System.out.print("Echoer> ");
 			String usrInput = null;
@@ -110,7 +92,7 @@ public class Echoer {
 			} catch (Exception Ex) {
 				cmd = cmdEnum.INVALID;
 			}
-			switchLoop:switch (cmd) {
+switchLoop:	switch (cmd) {
 			case CONNECT:
 				if(cmd_args.length != 3){
 					System.out.println("Wrong arguments to connect");
@@ -124,27 +106,20 @@ public class Echoer {
 					try {//test for local, loopback and self connection
 						if("127.0.0.1".equals(cmd_args[1])||InetAddress.getLocalHost().getHostAddress().equals(cmd_args[1])||
 								ValidateIP.getLocalIPAddress().getHostAddress().equals(cmd_args[1])){
-									System.out.println("Please enter hostname other than Local host");
+								System.out.println("Please enter hostname other than Local host");
 								}
 						  else{
-									//check for duplicate ip address and hostname
-									Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
-									while(itr.hasNext()){
-										ConnectionStatus connectionStatusItr = itr.next();
-											if(connectionStatusItr.getIp().equals(cmd_args[1])||connectionStatusItr.getHostname().equals(cmd_args[1])){
-												System.out.println("Please use existing connection, duplicate address not allowed");
-												break switchLoop;
-											}
-										} 
-								int portNo;
-								try {
-									portNo = Integer.parseInt(cmd_args[2]);
-								} catch (NumberFormatException e) {
-									System.out.println("Invalid Port number");
-									break;
-								}
-								if(portNo > 65535 || portNo < 1025) {
-									System.out.println("TCP Port number out of range. Port number should be between 1025 and 65535");
+								//check for duplicate ip address and hostname
+								Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
+								while(itr.hasNext()){
+									ConnectionStatus connectionStatusItr = itr.next();
+									if(connectionStatusItr.getIp().equals(cmd_args[1])||connectionStatusItr.getHostname().equals(cmd_args[1])){
+										System.out.println("Please use existing connection, duplicate address not allowed");
+										break switchLoop;
+									}
+								} 
+								int portNo = ValidateIP.StringtoPort(cmd_args[2]);
+								if(portNo == -1){
 									break;
 								}
 								
@@ -153,12 +128,10 @@ public class Echoer {
 									clientSocket = new Socket(cmd_args[1], portNo);
 								} catch (UnknownHostException e) {
 									System.out.println("Cannot reach IP address");
-									//e.printStackTrace();
 									break;
 								} catch (IOException e) {
 									System.out.println("Error while connecting to server");
 									break;
-									//e.printStackTrace();
 								}
 								System.out.println("Connected with server");
 								ConnectionStatus connectionStatus = new ConnectionStatus();
@@ -230,18 +203,12 @@ public class Echoer {
 					System.out.println("Invalid IPv4 format");
 					break;
 				} 
-				int port;
-				try {
-					port = Integer.parseInt(cmd_args[2]);
-				} catch (NumberFormatException e) {
-					System.out.println("Illigal input, UDP port have to be numbers");
+			
+				int port = ValidateIP.StringtoPort(cmd_args[2]);
+				if(port == -1){
 					break;
 				}
-				if(port > 65535 || port < 1025) {
-					System.out.println("UDP Port number out of range. Port number should be between 1025 and 65535");
-					break;
-				}
-
+				
 				String msgToSendUDP = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
 				msgToSendUDP = msgToSendUDP.substring(
@@ -351,17 +318,16 @@ public class Echoer {
 		}
 	}
 
-	
 	private static void TCPServerThread(int tcpServerPort) {
-		class serverResponseThread implements Runnable {
+		class TCPserverResponseThread implements Runnable {
 			private Socket clientSocket;
 
-			public serverResponseThread(Socket clientSocket) {
+			public TCPserverResponseThread(Socket clientSocket) {
 				this.clientSocket = clientSocket;
 			}
 
 			public void run() {
-				serverResponse(clientSocket);
+				TCPserverResponse(clientSocket);
 			}
 		}
 		;
@@ -394,12 +360,12 @@ public class Echoer {
 				System.out.println("Accept failed at " + tcpServerPort);
 				continue;
 			}
-			Thread s3 = new Thread(new serverResponseThread(clientSocket));
-			s3.start();
+			Thread tcp_serverResp_t = new Thread(new TCPserverResponseThread(clientSocket));
+			tcp_serverResp_t.start();
 		}
 	}
 
-	public static void serverResponse(Socket clientSocket){ 
+	public static void TCPserverResponse(Socket clientSocket){ 
 		System.out
 				.println("Socket connection accepted, reading from the socket");
 		BufferedReader fromClient = null;
@@ -419,6 +385,8 @@ public class Echoer {
 				clientMsg = fromClient.readLine();
 			} catch (IOException e) {
 				System.out.println("Unable to read from client");
+				// closing the connection
+				clientMsg = null;
 			}
 			if (clientMsg == null) {
 				System.out.println("Client has disconnected");
@@ -441,7 +409,8 @@ public class Echoer {
 			try {
 				toClient.writeBytes(clientMsg + '\n');
 			} catch (IOException e) {
-				System.out.println("Unable to write to client");
+				System.out.println("Unable to echo to client, ignoring");
+				continue;
 			}
 		}
 		try {
@@ -452,22 +421,7 @@ public class Echoer {
 		}
 	}
 
-	public enum cmdEnum {
-		CONNECT, SEND, SENDTO, SHOW, INFO, DISCONNECT, INVALID, BYE
-	}
-
-	public static Socket getClientSocketByConnectionID(int connectionId) {
-		Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
-		while (itr.hasNext()) {
-			ConnectionStatus connectionItr = itr.next();
-			if (connectionItr.getConnectionID() == connectionId) {
-				return connectionItr.getClientSocket();
-			}
-		}
-		return null;
-	}
-
-	private static void UDPServerThread(int UDPport) {
+	public static void UDPServerThread(int UDPport) {
 		System.out.println("My name is UDP Server");
 		DatagramSocket EchoerUDPSocket = null;
 		try {
@@ -503,6 +457,21 @@ public class Echoer {
 				continue;
 			}
 		}
-
 	}
+	
+	public enum cmdEnum {
+		CONNECT, SEND, SENDTO, SHOW, INFO, DISCONNECT, INVALID, BYE
+	}
+
+	public static Socket getClientSocketByConnectionID(int connectionId) {
+		Iterator<ConnectionStatus> itr = connectionListStore.getIterator("out");
+		while (itr.hasNext()) {
+			ConnectionStatus connectionItr = itr.next();
+			if (connectionItr.getConnectionID() == connectionId) {
+				return connectionItr.getClientSocket();
+			}
+		}
+		return null;
+	}
+
 }
