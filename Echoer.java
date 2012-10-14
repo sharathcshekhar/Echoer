@@ -24,7 +24,7 @@ public class Echoer {
 		int tcpServerPort = 0;
 		int udpServerPort = 0;
 		if(args.length != 2) {
-			System.out.println("Incorrect number of arguments. Eg: \"java Echoer 4242 4343\"\n");
+			System.out.println("Incorrect number of arguments. Eg: \"java Echoer 4242 4343\"");
 			System.exit(1);
 		}
 
@@ -33,22 +33,22 @@ public class Echoer {
 			tcpServerPort = Integer.parseInt(args[0]);
 			udpServerPort = Integer.parseInt(args[1]);
 		} catch (NumberFormatException e) {
-			System.out.println("Illigal input, TCP and UDP port numbers have to be numbers\n");
+			System.out.println("Illigal input, TCP and UDP port numbers have to be numbers");
 			System.exit(1);
 		}
 		
 		if(tcpServerPort > 65535 || tcpServerPort < 1025) {
-			System.out.println("TCP Port number out of Range\n");
+			System.out.println("TCP Port number out of range. Port number should be between 1025 and 65535");
 			System.exit(1);
 		}
 		
 		if(udpServerPort > 65535 || udpServerPort < 1025) {
-			System.out.println("UDP port number out of Range\n");
+			System.out.println("UDP port number out of Range. Port number should be between 1025 and 65535");
 			System.exit(1);
 		}
 		
 		if(tcpServerPort == udpServerPort){
-			System.out.println("Enter different port numbers for TCP and UDP\n");
+			System.out.println("Enter different port numbers for TCP and UDP");
 			System.exit(1);
 		}
 		
@@ -89,21 +89,21 @@ public class Echoer {
 
 		BufferedReader cmdFromUser = new BufferedReader(new InputStreamReader(
 				System.in));
-		System.out.println("I am CLI:");
+	//	System.out.println("I am CLI:");
 		while (true) {
-			System.out.print("Echoer>");
+			System.out.print("Echoer> ");
 			String usrInput = null;
 			try {
-				usrInput = cmdFromUser.readLine();
+				usrInput = cmdFromUser.readLine().trim(); //trim() deletes leading and trailing whitespace
 			} catch(IOException e) {
-				System.out.println("Cannot parse command, please try again\n");
+				System.out.println("Cannot parse command, please try again");
 				continue;
 			}
 
 			if (usrInput.length() == 0) {
 				continue;
 			}
-			String[] cmd_args = usrInput.split(" ");
+			String[] cmd_args = usrInput.split("\\s+"); //This regex ignores whitespace between words
 			cmdEnum cmd;
 			try {
 				cmd = cmdEnum.valueOf(cmd_args[0].toUpperCase());
@@ -112,8 +112,7 @@ public class Echoer {
 			}
 			switchLoop:switch (cmd) {
 			case CONNECT:
-				if(cmd_args.length != 3)
-				{
+				if(cmd_args.length != 3){
 					System.out.println("Wrong arguments to connect");
 					break;
 				}
@@ -142,6 +141,10 @@ public class Echoer {
 									portNo = Integer.parseInt(cmd_args[2]);
 								} catch (NumberFormatException e) {
 									System.out.println("Invalid Port number");
+									break;
+								}
+								if(portNo > 65535 || portNo < 1025) {
+									System.out.println("TCP Port number out of range. Port number should be between 1025 and 65535");
 									break;
 								}
 								
@@ -225,19 +228,32 @@ public class Echoer {
 				}
 				if (!ValidateIP.validateIP(cmd_args[1])) {
 					System.out.println("Invalid IPv4 format");
-					continue;
+					break;
+				} 
+				int port;
+				try {
+					port = Integer.parseInt(cmd_args[2]);
+				} catch (NumberFormatException e) {
+					System.out.println("Illigal input, UDP port have to be numbers");
+					break;
 				}
-				else{
+				if(port > 65535 || port < 1025) {
+					System.out.println("UDP Port number out of range. Port number should be between 1025 and 65535");
+					break;
+				}
+
 				String msgToSendUDP = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
-				msgToSendUDP=msgToSendUDP.substring(msgToSendUDP.indexOf(" ") + 1).substring(msgToSendUDP.indexOf(" ") + 1);
+				msgToSendUDP = msgToSendUDP.substring(
+						msgToSendUDP.indexOf(" ") + 1).substring(
+						msgToSendUDP.indexOf(" ") + 1);
 
 				byte[] receiveData = new byte[1024];
 				byte[] sendData = new byte[1024];
 				try{
 					DatagramSocket clientUDPSocket = new DatagramSocket();
 					InetAddress IPAddress = InetAddress.getByName(cmd_args[1]);
-					int port = Integer.parseInt(cmd_args[2]);
+
 					sendData = msgToSendUDP.getBytes();
 					DatagramPacket sendPacket = new DatagramPacket(sendData,
 							sendData.length, IPAddress, port);
@@ -249,8 +265,7 @@ public class Echoer {
 					System.out.println("Server replied with " + reply);
 				} catch(IOException e){
 					System.out.println("Error while contacting Server");
-					continue;
-				}}
+				}
 				break;
 			case SHOW:
 				if(cmd_args.length > 1)
