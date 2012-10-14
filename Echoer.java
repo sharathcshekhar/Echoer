@@ -118,15 +118,18 @@ public class Echoer {
 					if(server_addr.equals("127.0.0.1") || 
 							server_addr.equals(ValidateIP.getLocalIPAddress().getHostAddress())){
 						System.out.println("Enter the IP of a different machine");
+						break;
 					}
 				} else {
 					 try {
 						if(server_addr.equals("localhost") ||
 								 server_addr.equals(InetAddress.getLocalHost().getHostAddress())) {
 							 System.out.println("Enter hostname of a different machine"); 
+							 break;
 						 }
 					} catch (UnknownHostException e) {
 						System.out.println("Unknown localhost. Continuing");
+						break;
 					}
 				}
 				
