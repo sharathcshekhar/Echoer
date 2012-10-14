@@ -14,8 +14,10 @@
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,6 +55,7 @@ public class ValidateIP {
 
 	public static InetAddress getLocalIPAddress() {
 		InetAddress IP = null;
+		if(!System.getProperty("os.name").contains("Windows")){
 		/*
 		 * Method suggested by TA
 		 */
@@ -69,9 +72,9 @@ public class ValidateIP {
 			return null;
 		}
 		return IP;
-		
+		}
+		else{
 		// Works even if the Network is not connected to the Internet
-		/*
 		
 		Enumeration<NetworkInterface> netwrkIfs;
 		try {
@@ -85,13 +88,12 @@ public class ValidateIP {
 			while (addr.hasMoreElements()) {
 				InetAddress addr_n = addr.nextElement();
 				if (!addr_n.isLinkLocalAddress() && !addr_n.isLoopbackAddress()) {
-					return addr_n.getHostAddress();
+					return addr_n;
 				}
 			}
 		}
 		return null;
-		
-		*/
+		}
 	}
 
 	public static int StringtoPort(String s)

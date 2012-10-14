@@ -27,9 +27,6 @@ import java.net.UnknownHostException;
 import java.util.Iterator;
 
 public class Echoer {
-
-	
-	private static int counterInConnections = 0;
 	private static ConnectionListStore connectionListStore = new ConnectionListStore();
 	
 	public static void main(String[] args) {
@@ -109,7 +106,7 @@ public class Echoer {
 			}
 			int connectionID = 0;
 			Socket sessionSocket = null;
-switchLoop:	switch (cmd) {
+			switchLoop:switch (cmd) {
 			case CONNECT:
 				if(cmd_args.length != 3){
 					System.out.println("Wrong arguments to connect");
@@ -171,7 +168,7 @@ switchLoop:	switch (cmd) {
 				connectionStatus.setIp(clientSocket.getInetAddress()
 							.getHostAddress());
 				connectionStatus.setRemoteport(clientSocket.getPort());
-				connectionStatus.setLocalprt(tcpServerPort);
+				connectionStatus.setLocalprt(clientSocket.getLocalPort());
 				connectionStatus.setClientSocket(clientSocket);
 				// add connection status to list
 				connectionListStore.getOutGoingConnections().add(connectionStatus);
@@ -188,11 +185,11 @@ switchLoop:	switch (cmd) {
 				String msgToSend = "";
 				msgToSend = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
-				msgToSend = usrInput
+				msgToSend = msgToSend
 						.substring(usrInput.indexOf(" ") + 1);
 				
 				try {
-					connectionID = Integer.parseInt(cmd_args[2]);
+					connectionID = Integer.parseInt(cmd_args[1]);
 					sessionSocket = getClientSocketByConnectionID(connectionID);
 				} catch (NumberFormatException e){
 					System.out.println("Enter valid number");
@@ -231,7 +228,6 @@ switchLoop:	switch (cmd) {
 					System.out.println("Invalid IPv4 format");
 					break;
 				} 
-			
 				int port = ValidateIP.StringtoPort(cmd_args[2]);
 				if(port == -1){
 					break;
@@ -256,7 +252,6 @@ switchLoop:	switch (cmd) {
 					clientUDPSocket.send(sendPacket);
 					DatagramPacket receivePacket = new DatagramPacket(receiveData,
 							receiveData.length);
-					System.out.println("Peresent timeout = " + clientUDPSocket.getSoTimeout());
 					clientUDPSocket.setSoTimeout(3000);
 					clientUDPSocket.receive(receivePacket);
 					String reply = new String(receivePacket.getData());
@@ -278,15 +273,14 @@ switchLoop:	switch (cmd) {
 				ConnectionStatus connectionItr;
 				if(!connectionListStore.checkEmpty("out"))
 					System.out.println("Outgoing Connections: ");
-				Iterator<ConnectionStatus> itr1 = connectionListStore.getIterator("out");
-				while (itr1.hasNext()) {
-					connectionItr = itr1.next();
-					System.out.println("Connection ID="
-							+ connectionItr.getConnectionID() + "\tIP Address="
-							+ connectionItr.getIp() + "\tHost Name="
-							+ connectionItr.getHostname() + "\tLocal Port="
-							+ connectionItr.getLocalprt() + "\tRemote Port="
-							+ connectionItr.getRemoteport()+" ");
+				itr = connectionListStore.getIterator("out");
+				while (itr.hasNext()) {
+					connectionItr = itr.next();
+					System.out.println("conn. ID |      IP             |     hostname             | local port | remote port\n"+
+				 			"------------------------------------------------------------------------------------\n"+
+				 			"     "+connectionItr.getConnectionID()+"     | "+connectionItr.getIp()+
+				 			"   | "+connectionItr.getHostname()+"      | "+connectionItr.getLocalprt()+
+				 			"       | "+connectionItr.getRemoteport()+"\n");
 				}
 				if(!connectionListStore.checkEmpty("in"))
 					System.out.println("Incoming Connections: ");
@@ -395,17 +389,19 @@ switchLoop:	switch (cmd) {
 		System.out
 				.println("Got connection request from " + clientSocket.getInetAddress().getHostAddress());
 		
-		//maintain incoming list
-		ConnectionStatus incomingConnection = new ConnectionStatus();
-		incomingConnection.setConnectionID(counterInConnections++);
-		incomingConnection.setClientSocket(clientSocket);
-		incomingConnection.setHostname(clientSocket.getInetAddress().getHostName());
-		incomingConnection.setIp(clientSocket.getInetAddress().getHostAddress());
-		incomingConnection.setLocalprt(clientSocket.getLocalPort());
-		incomingConnection.setRemoteport(clientSocket.getPort());
-		synchronized (connectionListStore){
-			connectionListStore.getInComingConnections().add(incomingConnection);
-		}
+		int counterInConnections = 0;
+				//maintain incoming list
+				ConnectionStatus incomingConnection = new ConnectionStatus();
+				incomingConnection.setConnectionID(counterInConnections++);
+				incomingConnection.setClientSocket(clientSocket);
+				incomingConnection.setHostname(clientSocket.getInetAddress().getHostName());
+				incomingConnection.setIp(clientSocket.getInetAddress().getHostAddress());
+				incomingConnection.setLocalprt(clientSocket.getLocalPort());
+				incomingConnection.setRemoteport(clientSocket.getPort());
+				synchronized (connectionListStore){
+				connectionListStore.getInComingConnections().add(incomingConnection);
+				connectionListStore.setCounterInConnections(counterInConnections);
+				}
 		BufferedReader fromClient = null;
 		DataOutputStream toClient = null;
 		try {
@@ -433,12 +429,11 @@ switchLoop:	switch (cmd) {
 				//reset Incoming connections
 				while (itrDC.hasNext()) {
 					connectionItr = itrDC.next();
-					synchronized (connectionListStore) {
-						if (connectionItr.getIp().equals(clientSocket.getInetAddress().getHostAddress())) {
-							itrDC.remove();
-							if(counterInConnections > 0) {
-								counterInConnections--;
-							}
+				synchronized (connectionListStore) {	
+				if (connectionItr.getIp().equals(clientSocket.getInetAddress().getHostAddress())) {
+						itrDC.remove();
+						if(connectionListStore.getCounterInConnections()>0)
+							connectionListStore.setCounterInConnections(connectionListStore.getCounterInConnections()-1);
 						}
 					}
 				}

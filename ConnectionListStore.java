@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
  
 public class ConnectionListStore{
+	private int counterInConnections = 0;
 	private ArrayList<ConnectionStatus> OutGoingConnections;
 	private ArrayList<ConnectionStatus> InComingConnections;
 	public ConnectionListStore(){
@@ -26,6 +27,14 @@ public class ConnectionListStore{
 		InComingConnections = inComingConnections;
 	}
 	
+	public int getCounterInConnections() {
+		return counterInConnections;
+	}
+
+	public void setCounterInConnections(int counterInConnections) {
+		this.counterInConnections = counterInConnections;
+	}
+
 	public boolean checkEmpty(String param){
 		if("in".equals(param)){
 			return InComingConnections.isEmpty();
