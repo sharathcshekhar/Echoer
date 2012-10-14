@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Iterator;
 
@@ -106,6 +107,8 @@ public class Echoer {
 			} catch (Exception Ex) {
 				cmd = cmdEnum.INVALID;
 			}
+			int connectionID = 0;
+			Socket sessionSocket = null;
 switchLoop:	switch (cmd) {
 			case CONNECT:
 				if(cmd_args.length != 3){
@@ -166,26 +169,29 @@ switchLoop:	switch (cmd) {
 					}
 				break;
 			case SEND:
-				if(cmd_args.length != 3)
+				if(cmd_args.length < 3)
 				{
-					System.out.println("Invalid arguments");
+					System.out.println("Too few arguments");
 					break;
 				}
-				if (!ValidateIP.validateIP(cmd_args[1]) && !ValidateIP.validateHost(cmd_args[1])) {
-					System.out.println("Invalid IPv4 or hostname format");
-					break;
-				} 
 				System.out.println("Connection ID requested is " + cmd_args[1]);
 
 				// Shamefully ugly!
 				String msgToSend = "";
 				msgToSend = usrInput
-						.substring(usrInput.indexOf(" ") + 1).substring(msgToSend.indexOf(" ") + 1);
-
-				Socket sessionSocket = getClientSocketByConnectionID(Integer
-						.parseInt(cmd_args[1]));
+						.substring(usrInput.indexOf(" ") + 1);
+				msgToSend = usrInput
+						.substring(usrInput.indexOf(" ") + 1);
+				
+				try {
+					connectionID = Integer.parseInt(cmd_args[2]);
+					sessionSocket = getClientSocketByConnectionID(connectionID);
+				} catch (NumberFormatException e){
+					System.out.println("Enter valid number");
+					break;
+				}
 				if (sessionSocket == null) {
-					System.out.println("session ID is returning NULL");
+					System.out.println("Connection ID " + connectionID + " is is not present");
 					break;
 				}
 				BufferedReader fromServer;
@@ -208,7 +214,7 @@ switchLoop:	switch (cmd) {
 				System.out.println("Server replied with " + serverReply);
 				break;
 			case SENDTO:
-				if(cmd_args.length != 4)
+				if(cmd_args.length < 4)
 				{
 					System.out.println("Invalid arguments to sendto");
 					break;
@@ -225,9 +231,14 @@ switchLoop:	switch (cmd) {
 				
 				String msgToSendUDP = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
+				System.out.println("msg = " + msgToSendUDP);
 				msgToSendUDP = msgToSendUDP.substring(
-						msgToSendUDP.indexOf(" ") + 1).substring(
 						msgToSendUDP.indexOf(" ") + 1);
+				System.out.println("msg = " + msgToSendUDP);
+				msgToSendUDP = msgToSendUDP.substring(
+						msgToSendUDP.indexOf(" ") + 1);
+				
+				System.out.println("msg = " + msgToSendUDP);
 
 				byte[] receiveData = new byte[1024];
 				byte[] sendData = new byte[1024];
@@ -241,11 +252,17 @@ switchLoop:	switch (cmd) {
 					clientUDPSocket.send(sendPacket);
 					DatagramPacket receivePacket = new DatagramPacket(receiveData,
 							receiveData.length);
+					System.out.println("Peresent timeout = " + clientUDPSocket.getSoTimeout());
+					clientUDPSocket.setSoTimeout(3000);
 					clientUDPSocket.receive(receivePacket);
 					String reply = new String(receivePacket.getData());
 					System.out.println("Server replied with " + reply);
+				} catch(SocketTimeoutException e){
+					System.out.println("Received a timeout after 3 seconds while sending UDP message to server. Verify the port number and try again.");
+					break;
 				} catch(IOException e){
 					System.out.println("Error while contacting Server");
+					break;
 				}
 				break;
 			case SHOW:
@@ -297,7 +314,7 @@ switchLoop:	switch (cmd) {
 					break;
 				}
 				try {
-				int connectionID = Integer.parseInt(cmd_args[1]);
+				connectionID = Integer.parseInt(cmd_args[1]);
 				getClientSocketByConnectionID(connectionID)
 						.close();
 				}catch(NumberFormatException Ex){
@@ -311,8 +328,7 @@ switchLoop:	switch (cmd) {
 				Iterator<ConnectionStatus> itrDC = connectionListStore.getIterator("out");
 				while (itrDC.hasNext()) {
 					connectionItr = itrDC.next();
-					if (connectionItr.getConnectionID() == Integer
-							.parseInt(cmd_args[1])) {
+					if (connectionItr.getConnectionID() == connectionID) {
 						itrDC.remove();
 						if(counterOutConnections>0)
 						counterOutConnections--;
@@ -361,17 +377,7 @@ switchLoop:	switch (cmd) {
 		while (true) {
 			try {
 				clientSocket = EchoerTCP.accept();
-				//maintain incoming list
-				ConnectionStatus incomingConnection = new ConnectionStatus();
-				incomingConnection.setConnectionID(counterInConnections++);
-				incomingConnection.setClientSocket(clientSocket);
-				incomingConnection.setHostname(clientSocket.getInetAddress().getHostName());
-				incomingConnection.setIp(clientSocket.getInetAddress().getHostAddress());
-				incomingConnection.setLocalprt(clientSocket.getLocalPort());
-				incomingConnection.setRemoteport(clientSocket.getPort());
-				synchronized (connectionListStore){
-					connectionListStore.getInComingConnections().add(incomingConnection);
-				}
+				
 			} catch (IOException e) {
 				System.out.println("Accept failed at " + tcpServerPort);
 				continue;
@@ -383,7 +389,19 @@ switchLoop:	switch (cmd) {
 
 	public static void TCPserverResponse(Socket clientSocket){ 
 		System.out
-				.println("Socket connection accepted, reading from the socket");
+				.println("Got connection request from " + clientSocket.getInetAddress().getHostAddress());
+		
+		//maintain incoming list
+		ConnectionStatus incomingConnection = new ConnectionStatus();
+		incomingConnection.setConnectionID(counterInConnections++);
+		incomingConnection.setClientSocket(clientSocket);
+		incomingConnection.setHostname(clientSocket.getInetAddress().getHostName());
+		incomingConnection.setIp(clientSocket.getInetAddress().getHostAddress());
+		incomingConnection.setLocalprt(clientSocket.getLocalPort());
+		incomingConnection.setRemoteport(clientSocket.getPort());
+		synchronized (connectionListStore){
+			connectionListStore.getInComingConnections().add(incomingConnection);
+		}
 		BufferedReader fromClient = null;
 		DataOutputStream toClient = null;
 		try {
@@ -400,7 +418,7 @@ switchLoop:	switch (cmd) {
 			try {
 				clientMsg = fromClient.readLine();
 			} catch (IOException e) {
-				System.out.println("Unable to read from client");
+				System.out.println("Session abruptly ended");
 				// closing the connection
 				clientMsg = null;
 			}
@@ -423,8 +441,8 @@ switchLoop:	switch (cmd) {
 				connectionListStore.resetCount("in");
 				break;
 			}
-			System.out.println("Client says " + clientMsg
-					+ " Server Echoes the same");
+			System.out.println("Echoing " + clientMsg
+					+ "to: " + clientSocket.getInetAddress().getHostAddress() + "Type: TCP");
 			try {
 				toClient.writeBytes(clientMsg + '\n');
 			} catch (IOException e) {
@@ -460,15 +478,18 @@ switchLoop:	switch (cmd) {
 				System.out.println("Failed to receive packet");
 				continue;
 			}
-			String sentence = new String(receivePacket.getData());
-			System.out
-					.println("Received connection request from Client:"+EchoerUDPSocket.getInetAddress().getHostAddress()+" with msg "
-							+ sentence);
+			String clientMsg = new String(receivePacket.getData());
+			
 			InetAddress IPAddress = receivePacket.getAddress();
+			System.out.println("Got connection request from Client:"
+							+ IPAddress.getHostAddress());
+	
 			int port = receivePacket.getPort();
-			sendData = sentence.getBytes();
+			sendData = clientMsg.getBytes();
 			DatagramPacket sendPacket = new DatagramPacket(sendData,
 					sendData.length, IPAddress, port);
+			System.out.println("Echoing " + clientMsg
+					+ "to: " + IPAddress.getHostAddress() + " Type: UDP");
 			try {
 				EchoerUDPSocket.send(sendPacket);
 			} catch (IOException e) {
