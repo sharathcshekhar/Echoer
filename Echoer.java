@@ -1,3 +1,17 @@
+/*
+ * Department of Computer Science, University at Buffalo
+ * 
+ * CSE 589 Project - 1 
+ * 
+ * Authors: 	Sharath Chandrashekhara - sc296@buffalo.edu
+ * 				Sanketh Kulkarni		- sanketh@buffalo.edu
+ * 
+ * Date: 14th October, 2012
+ * 
+ * This is the main class file of the Echoer program. For more Help, see README
+ * 
+ */
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -333,7 +347,7 @@ switchLoop:	switch (cmd) {
 		;
 
 		Socket clientSocket = new Socket();
-		System.out.println("My name is Server");
+		System.out.println("Starting TCP Server at port " + tcpServerPort);
 		ServerSocket EchoerTCP = null;
 		try {
 			EchoerTCP = new ServerSocket(tcpServerPort);
@@ -355,7 +369,9 @@ switchLoop:	switch (cmd) {
 				incomingConnection.setIp(clientSocket.getInetAddress().getHostAddress());
 				incomingConnection.setLocalprt(clientSocket.getLocalPort());
 				incomingConnection.setRemoteport(clientSocket.getPort());
-				connectionListStore.getInComingConnections().add(incomingConnection);
+				synchronized (connectionListStore){
+					connectionListStore.getInComingConnections().add(incomingConnection);
+				}
 			} catch (IOException e) {
 				System.out.println("Accept failed at " + tcpServerPort);
 				continue;
@@ -395,10 +411,13 @@ switchLoop:	switch (cmd) {
 				//reset Incoming connections
 				while (itrDC.hasNext()) {
 					connectionItr = itrDC.next();
-					if (connectionItr.getIp().equals(clientSocket.getInetAddress().getHostAddress())) {
-						itrDC.remove();
-						if(counterInConnections>0)
-						counterInConnections--;
+					synchronized (connectionListStore) {
+						if (connectionItr.getIp().equals(clientSocket.getInetAddress().getHostAddress())) {
+							itrDC.remove();
+							if(counterInConnections > 0) {
+								counterInConnections--;
+							}
+						}
 					}
 				}
 				connectionListStore.resetCount("in");
@@ -422,7 +441,7 @@ switchLoop:	switch (cmd) {
 	}
 
 	public static void UDPServerThread(int UDPport) {
-		System.out.println("My name is UDP Server");
+		System.out.println("Starting UDP Server at port " + UDPport);
 		DatagramSocket EchoerUDPSocket = null;
 		try {
 			EchoerUDPSocket = new DatagramSocket(UDPport);
