@@ -68,7 +68,7 @@ public class Echoer {
 		try {
 			hostname = InetAddress.getLocalHost().getHostName();
 		} catch (UnknownHostException e1) {
-			System.out.println("Can not resolve localhost");
+				System.out.println("Cannot get hostname of local system");
 		}
 
 		class TCPServer implements Runnable {
@@ -142,8 +142,7 @@ public class Echoer {
 				if (isIP) {
 					//check for local ip/hostname
 					if (server_addr.equals("127.0.0.1")
-							|| server_addr.equals(ValidateIP
-									.getLocalIPAddress().getHostAddress())) {
+							|| server_addr.equals(addr.getHostAddress())) {
 						System.out
 								.println("Enter the IP of a remote machine");
 						break;
@@ -151,7 +150,8 @@ public class Echoer {
 				} else {
 					 try {
 						if(server_addr.equalsIgnoreCase("localhost") ||
-								 server_addr.equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
+								 server_addr.equalsIgnoreCase(InetAddress.getLocalHost().getHostName())||
+								 server_addr.equalsIgnoreCase(addr.getHostName())) {
 							 System.out.println("Enter hostname of a remote machine"); 
 							 break;
 						 }
@@ -163,9 +163,10 @@ public class Echoer {
 				
 				Iterator<ConnectionStatus> itr;
 				synchronized (connectionListStore) {
-				//outgoing connections list maintained in arraylist in connectionListStore class
+					// outgoing connections list maintained in arraylist in
+					// connectionListStore class
 				itr = connectionListStore.getIterator("out");
-				}
+
 				while (itr.hasNext()) {
 					ConnectionStatus connectionStatusItr = itr.next();
 					if (isIP) {
@@ -175,9 +176,13 @@ public class Echoer {
 							break switchLoop;
 						}
 					} else {
-						if(server_addr.equalsIgnoreCase(connectionStatusItr.getHostname())){
-							System.out.println("Please use existing connection, duplicate address not allowed");
+							if (server_addr
+									.equalsIgnoreCase(connectionStatusItr
+											.getHostname())) {
+								System.out
+										.println("Please use existing connection, duplicate address not allowed");
 							break switchLoop;
+							}
 						}
 					}
 				}
@@ -209,7 +214,7 @@ public class Echoer {
 				connectionStatus.setClientSocket(clientSocket);
 				synchronized (connectionListStore) {
 				// add connection status to list
-				boolean bool = false;
+					boolean hole_exists = false;
 				if (connectionListStore.getOutGoingConnections().size() == 0) {
 					connectionStatus.setConnectionID(1);
 					connectionListStore.getOutGoingConnections().add(0,
@@ -223,20 +228,21 @@ public class Echoer {
 						ConnectionStatus connectionItr = itrD.next();
 						if (connectionItr.getConnectionID() != i) {
 							connectionStatus.setConnectionID(i);
-							connectionListStore.getOutGoingConnections().add(
-									i - 1, connectionStatus);
-							bool = true;
+								connectionListStore.getOutGoingConnections()
+										.add(i - 1, connectionStatus);
+								hole_exists = true;
 							break switchLoop;
 						}
 						i++;
 					}
 				}
-				if (!bool) {
+					if (!hole_exists) {
 					connectionStatus.setConnectionID(connectionListStore
 							.getOutGoingConnections().size() + 1);
 					connectionListStore.getOutGoingConnections().add(
 							connectionStatus);
-				}}
+					}
+				}
 				break;
 				
 			//Send command from here
@@ -245,8 +251,6 @@ public class Echoer {
 					System.out.println("Too few arguments");
 					break;
 				}
-
-				//Get the message to be sent
 				String msgToSend = "";
 				msgToSend = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
@@ -257,7 +261,7 @@ public class Echoer {
 					connectionID = Integer.parseInt(cmd_args[1]);
 					sessionSocket = getClientSocketByConnectionID(connectionID);
 				} catch (NumberFormatException e) {
-					System.out.println("Enter valid number");
+					System.out.println("Enter valid Connection ID number");
 					break;
 				}
 				if (sessionSocket == null) {
@@ -274,26 +278,27 @@ public class Echoer {
 					toServer = new DataOutputStream(
 							sessionSocket.getOutputStream());
 
-					System.out.println("command to send data received msg: "
-							+ msgToSend);
+					//System.out.println("command to send data received msg: "
+					//		+ msgToSend);
 					toServer.writeBytes(msgToSend + '\n');
 					serverReply = fromServer.readLine();
 				} catch (IOException Ex) {
 					System.out
-							.println("Error reading from server, session abruptly ended");
+							.println("Error contacting server, session abruptly ended");
 					Iterator<ConnectionStatus> itrDC;
 					synchronized (connectionListStore) {
 					itrDC = connectionListStore.getIterator("out");
-					}
+
 					while (itrDC.hasNext()) {
 						ConnectionStatus connectionItr = itrDC.next();
 						if (connectionItr.getConnectionID() == connectionID) {
 							itrDC.remove();
+							}
 						}
 					}
 					break;
 				}
-				System.out.println("Server replied with " + serverReply);
+				System.out.println("Server at " + sessionSocket.getInetAddress().getHostAddress() + " replied with " + serverReply);
 				break;
 			
 			//Send to command starts here
@@ -359,32 +364,43 @@ public class Echoer {
 				if(!connectionListStore.checkEmpty("out")) {
 					System.out.println("Outgoing Connections:\n");
 					fmt = new Formatter();
-					fmt.format("%-13s | %-15s | %-24s | %-10s | %-10s ", "Conn. ID", "IP", "hostname", "local port", "remote port");
+						fmt.format("%-13s | %-15s | %-24s | %-10s | %-10s ",
+								"Conn. ID", "IP", "hostname", "local port",
+								"remote port");
 					System.out.println(fmt);
-					System.out.println("-------------------------------------------------------------------------------------");
+						System.out
+								.println("-------------------------------------------------------------------------------------");
 				}
 				itr = connectionListStore.getIterator("out");
 				while (itr.hasNext()) {
 					fmt = new Formatter();
 					connectionItr = itr.next();
-					fmt.format("%-13d | %-15s | %-24s | %-10d | %-10d", connectionItr.getConnectionID(), 
-							connectionItr.getIp(), connectionItr.getHostname(), connectionItr.getLocalprt(), 
+						fmt.format("%-13d | %-15s | %-24s | %-10d | %-10d",
+								connectionItr.getConnectionID(),
+								connectionItr.getIp(),
+								connectionItr.getHostname(),
+								connectionItr.getLocalprt(),
 							connectionItr.getRemoteport());
 					System.out.println(fmt);
 				}
 				if(!connectionListStore.checkEmpty("in")) {
 					System.out.println("\nIncoming Connections:\n");
 					fmt = new Formatter();
-					fmt.format("%-15s | %-24s | %-10s | %-10s ", "IP", "hostname", "local port", "remote port");
+						fmt.format("%-15s | %-24s | %-10s | %-10s ", "IP",
+								"hostname", "local port", "remote port");
 					System.out.println(fmt);
-					System.out.println("------------------------------------------------------------------------");
+						System.out
+								.println("------------------------------------------------------------------------");
 				}
 				itr = connectionListStore.getIterator("in");
 				while (itr.hasNext()) {
 					fmt = new Formatter();
 					connectionItr = itr.next();
-					fmt.format("%-15s | %-24s | %-10d | %-10d",connectionItr.getIp(), connectionItr.getHostname(), 
-							connectionItr.getLocalprt(), connectionItr.getRemoteport());
+						fmt.format("%-15s | %-24s | %-10d | %-10d",
+								connectionItr.getIp(),
+								connectionItr.getHostname(),
+								connectionItr.getLocalprt(),
+								connectionItr.getRemoteport());
 					System.out.println(fmt);
 				}
 				}
@@ -409,10 +425,10 @@ public class Echoer {
 					break;
 				}
 				String tmp_serverIP = null;
-				connectionID = Integer.parseInt(cmd_args[1]);
 				try {
+					connectionID = Integer.parseInt(cmd_args[1]);					
 					sessionSocket = getClientSocketByConnectionID(connectionID);
-					 if(null==sessionSocket){
+					 if(null == sessionSocket){
 						 System.out.println("Invalid Connection ID");
 						 break;
 					 }
@@ -430,11 +446,12 @@ public class Echoer {
 				synchronized (connectionListStore) {
 					itrDC = connectionListStore
 						.getIterator("out");
-				}
+				
 				while (itrDC.hasNext()) {
 					connectionItr = itrDC.next();
 					if (connectionItr.getConnectionID() == connectionID) {
 						itrDC.remove();
+						}
 					}
 				}
 				System.out.println("Sucessfully disconnected from Server " + tmp_serverIP);
@@ -552,13 +569,13 @@ public class Echoer {
 				System.out.println("Client at "+ 
 						clientSocket.getInetAddress().getHostAddress() + 
 						" has disconnected");
+				synchronized (connectionListStore) {
 				Iterator<ConnectionStatus> itrDC = connectionListStore
 						.getIterator("in");
 				ConnectionStatus connectionItr;
 				// reset Incoming connections
 				while (itrDC.hasNext()) {
-					synchronized (connectionListStore) {
-						connectionItr = itrDC.next();
+							connectionItr = itrDC.next();
 						if (connectionItr.getIp().equals(
 								clientSocket.getInetAddress().getHostAddress())) {
 							itrDC.remove();
@@ -572,9 +589,9 @@ public class Echoer {
 				connectionListStore.resetCount("in");
 				break;
 			}
-			System.out.println("Echoing " + clientMsg + "to: "
+			System.out.println("Echoing " + clientMsg + " to: IP = "
 					+ clientSocket.getInetAddress().getHostAddress()
-					+ "Type: TCP");
+					+ "Type = TCP");
 			try {
 				toClient.writeBytes(clientMsg + '\n');
 			} catch (IOException e) {
@@ -619,15 +636,15 @@ public class Echoer {
 			String clientMsg = new String(receivePacket.getData());
 
 			InetAddress IPAddress = receivePacket.getAddress();
-			System.out.println("Got connection request from Client:"
+			System.out.println("Got connection request from "
 					+ IPAddress.getHostAddress());
 
 			int port = receivePacket.getPort();
 			sendData = clientMsg.getBytes();
 			DatagramPacket sendPacket = new DatagramPacket(sendData,
 					sendData.length, IPAddress, port);
-			System.out.println("Echoing " + clientMsg + "to: "
-					+ IPAddress.getHostAddress() + " Type: UDP");
+			System.out.println("Echoing " + clientMsg + " to: IP = "
+					+ IPAddress.getHostAddress() + " Type = UDP");
 			try {
 				EchoerUDPSocket.send(sendPacket);
 			} catch (IOException e) {
@@ -653,9 +670,7 @@ public class Echoer {
 	 */
 	public static Socket getClientSocketByConnectionID(int connectionId) {
 		Iterator<ConnectionStatus> itr;
-		synchronized (connectionListStore) {
 		itr = connectionListStore.getIterator("out");
-		}
 		while (itr.hasNext()) {
 			ConnectionStatus connectionItr = itr.next();
 			if (connectionItr.getConnectionID() == connectionId) {
