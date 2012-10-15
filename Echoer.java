@@ -165,23 +165,23 @@ public class Echoer {
 				synchronized (connectionListStore) {
 					// outgoing connections list maintained in arraylist in
 					// connectionListStore class
-				itr = connectionListStore.getIterator("out");
+					itr = connectionListStore.getIterator("out");
 
-				while (itr.hasNext()) {
-					ConnectionStatus connectionStatusItr = itr.next();
-					if (isIP) {
-						if (connectionStatusItr.getIp().equals(server_addr)) {
-							System.out
-									.println("Please use existing connection, duplicate address not allowed");
-							break switchLoop;
-						}
-					} else {
+					while (itr.hasNext()) {
+						ConnectionStatus connectionStatusItr = itr.next();
+						if (isIP) {
+							if (connectionStatusItr.getIp().equals(server_addr)) {
+								System.out
+										.println("Please use existing connection, duplicate address not allowed");
+								break switchLoop;
+							}
+						} else {
 							if (server_addr
 									.equalsIgnoreCase(connectionStatusItr
 											.getHostname())) {
 								System.out
 										.println("Please use existing connection, duplicate address not allowed");
-							break switchLoop;
+								break switchLoop;
 							}
 						}
 					}
@@ -213,34 +213,34 @@ public class Echoer {
 				connectionStatus.setLocalprt(clientSocket.getLocalPort());
 				connectionStatus.setClientSocket(clientSocket);
 				synchronized (connectionListStore) {
-				// add connection status to list
+					// add connection status to list
 					boolean hole_exists = false;
-				if (connectionListStore.getOutGoingConnections().size() == 0) {
-					connectionStatus.setConnectionID(1);
-					connectionListStore.getOutGoingConnections().add(0,
-							connectionStatus);
-					break;
-				} else {
-					int i = 1;
-					Iterator<ConnectionStatus> itrD = connectionListStore
-							.getIterator("out");
-					while (itrD.hasNext()) {
-						ConnectionStatus connectionItr = itrD.next();
-						if (connectionItr.getConnectionID() != i) {
-							connectionStatus.setConnectionID(i);
+					if (connectionListStore.getOutGoingConnections().size() == 0) {
+						connectionStatus.setConnectionID(1);
+						connectionListStore.getOutGoingConnections().add(0,
+								connectionStatus);
+						break;
+					} else {
+						int i = 1;
+						Iterator<ConnectionStatus> itrD = connectionListStore
+								.getIterator("out");
+						while (itrD.hasNext()) {
+							ConnectionStatus connectionItr = itrD.next();
+							if (connectionItr.getConnectionID() != i) {
+								connectionStatus.setConnectionID(i);
 								connectionListStore.getOutGoingConnections()
 										.add(i - 1, connectionStatus);
 								hole_exists = true;
-							break switchLoop;
+								break switchLoop;
+							}
+							i++;
 						}
-						i++;
 					}
-				}
 					if (!hole_exists) {
-					connectionStatus.setConnectionID(connectionListStore
-							.getOutGoingConnections().size() + 1);
-					connectionListStore.getOutGoingConnections().add(
-							connectionStatus);
+						connectionStatus.setConnectionID(connectionListStore
+								.getOutGoingConnections().size() + 1);
+						connectionListStore.getOutGoingConnections().add(
+								connectionStatus);
 					}
 				}
 				break;
@@ -251,6 +251,7 @@ public class Echoer {
 					System.out.println("Too few arguments");
 					break;
 				}
+				//Get the message to be sent
 				String msgToSend = "";
 				msgToSend = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
@@ -278,8 +279,6 @@ public class Echoer {
 					toServer = new DataOutputStream(
 							sessionSocket.getOutputStream());
 
-					//System.out.println("command to send data received msg: "
-					//		+ msgToSend);
 					toServer.writeBytes(msgToSend + '\n');
 					serverReply = fromServer.readLine();
 				} catch (IOException Ex) {
@@ -287,12 +286,11 @@ public class Echoer {
 							.println("Error contacting server, session abruptly ended");
 					Iterator<ConnectionStatus> itrDC;
 					synchronized (connectionListStore) {
-					itrDC = connectionListStore.getIterator("out");
-
-					while (itrDC.hasNext()) {
-						ConnectionStatus connectionItr = itrDC.next();
-						if (connectionItr.getConnectionID() == connectionID) {
-							itrDC.remove();
+						itrDC = connectionListStore.getIterator("out");
+						while (itrDC.hasNext()) {
+							ConnectionStatus connectionItr = itrDC.next();
+							if (connectionItr.getConnectionID() == connectionID) {
+								itrDC.remove();
 							}
 						}
 					}
@@ -360,49 +358,49 @@ public class Echoer {
 				}
 				ConnectionStatus connectionItr;
 				synchronized (connectionListStore) {
-				Formatter fmt;
-				if(!connectionListStore.checkEmpty("out")) {
-					System.out.println("Outgoing Connections:\n");
-					fmt = new Formatter();
+					Formatter fmt;
+					if (!connectionListStore.checkEmpty("out")) {
+						System.out.println("Outgoing Connections:\n");
+						fmt = new Formatter();
 						fmt.format("%-13s | %-15s | %-24s | %-10s | %-10s ",
 								"Conn. ID", "IP", "hostname", "local port",
 								"remote port");
-					System.out.println(fmt);
+						System.out.println(fmt);
 						System.out
 								.println("-------------------------------------------------------------------------------------");
-				}
-				itr = connectionListStore.getIterator("out");
-				while (itr.hasNext()) {
-					fmt = new Formatter();
-					connectionItr = itr.next();
+					}
+					itr = connectionListStore.getIterator("out");
+					while (itr.hasNext()) {
+						fmt = new Formatter();
+						connectionItr = itr.next();
 						fmt.format("%-13d | %-15s | %-24s | %-10d | %-10d",
 								connectionItr.getConnectionID(),
 								connectionItr.getIp(),
 								connectionItr.getHostname(),
 								connectionItr.getLocalprt(),
-							connectionItr.getRemoteport());
-					System.out.println(fmt);
-				}
-				if(!connectionListStore.checkEmpty("in")) {
-					System.out.println("\nIncoming Connections:\n");
-					fmt = new Formatter();
+								connectionItr.getRemoteport());
+						System.out.println(fmt);
+					}
+					if (!connectionListStore.checkEmpty("in")) {
+						System.out.println("\nIncoming Connections:\n");
+						fmt = new Formatter();
 						fmt.format("%-15s | %-24s | %-10s | %-10s ", "IP",
 								"hostname", "local port", "remote port");
-					System.out.println(fmt);
+						System.out.println(fmt);
 						System.out
 								.println("------------------------------------------------------------------------");
-				}
-				itr = connectionListStore.getIterator("in");
-				while (itr.hasNext()) {
-					fmt = new Formatter();
-					connectionItr = itr.next();
+					}
+					itr = connectionListStore.getIterator("in");
+					while (itr.hasNext()) {
+						fmt = new Formatter();
+						connectionItr = itr.next();
 						fmt.format("%-15s | %-24s | %-10d | %-10d",
 								connectionItr.getIp(),
 								connectionItr.getHostname(),
 								connectionItr.getLocalprt(),
 								connectionItr.getRemoteport());
-					System.out.println(fmt);
-				}
+						System.out.println(fmt);
+					}
 				}
 				break;
 				
@@ -444,13 +442,12 @@ public class Echoer {
 				
 				Iterator<ConnectionStatus> itrDC;
 				synchronized (connectionListStore) {
-					itrDC = connectionListStore
-						.getIterator("out");
-				
-				while (itrDC.hasNext()) {
-					connectionItr = itrDC.next();
-					if (connectionItr.getConnectionID() == connectionID) {
-						itrDC.remove();
+					itrDC = connectionListStore.getIterator("out");
+
+					while (itrDC.hasNext()) {
+						connectionItr = itrDC.next();
+						if (connectionItr.getConnectionID() == connectionID) {
+							itrDC.remove();
 						}
 					}
 				}
@@ -478,12 +475,10 @@ public class Echoer {
 	private static void TCPServerThread(int tcpServerPort) {
 		class TCPserverResponseThread implements Runnable {
 			private Socket clientSocket;
-
 			public TCPserverResponseThread(Socket clientSocket) {
 				this.clientSocket = clientSocket;
 			}
-
-			public void run() {
+		public void run() {
 				TCPserverResponse(clientSocket);
 			}
 		}
@@ -570,19 +565,20 @@ public class Echoer {
 						clientSocket.getInetAddress().getHostAddress() + 
 						" has disconnected");
 				synchronized (connectionListStore) {
-				Iterator<ConnectionStatus> itrDC = connectionListStore
-						.getIterator("in");
-				ConnectionStatus connectionItr;
-				// reset Incoming connections
-				while (itrDC.hasNext()) {
-							connectionItr = itrDC.next();
+					Iterator<ConnectionStatus> itrDC = connectionListStore
+							.getIterator("in");
+					ConnectionStatus connectionItr;
+					// reset Incoming connections
+					while (itrDC.hasNext()) {
+						connectionItr = itrDC.next();
 						if (connectionItr.getIp().equals(
 								clientSocket.getInetAddress().getHostAddress())) {
 							itrDC.remove();
-							if (connectionListStore.getCounterInConnections() > 0)
+							if (connectionListStore.getCounterInConnections() > 0) {
 								connectionListStore
 										.setCounterInConnections(connectionListStore
 												.getCounterInConnections() - 1);
+							}
 						}
 					}
 				}
