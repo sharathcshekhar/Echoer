@@ -1,4 +1,16 @@
-
+/*
+ * Department of Computer Science, University at Buffalo
+ * 
+ * CSE 589 Project - 1 
+ * 
+ * Authors: 	Sharath Chandrashekhara - sc296@buffalo.edu
+ * 				Sanket Kulkarni			- sanketku@buffalo.edu
+ * 
+ * Date: 14th October, 2012
+ * 
+ * This is file contains Helper utility functions for input validation
+ * 
+ */
 import java.util.ArrayList;
 import java.util.Iterator;
  
