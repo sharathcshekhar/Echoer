@@ -136,6 +136,7 @@ public class Echoer {
 			switchLoop: switch (cmd) {
 			//connect command start here
 			case CONNECT:
+				InetAddress inet = null;
 				if (cmd_args.length != 3) {
 					System.out.println("Wrong arguments to connect");
 					break;
@@ -152,7 +153,9 @@ public class Echoer {
 					}
 				} else {
 					//validate hostname
-					if(!ValidateIP.validateHost(server_addr) && !server_addr.contains("_")){
+					try {
+						inet = InetAddress.getByName(server_addr);					
+					} catch (UnknownHostException e1) {
 						System.out.println("Enter valid host name");
 						break;
 					}
@@ -329,7 +332,9 @@ public class Echoer {
 					}
 				} else {
 					//validate hostname
-					if(!ValidateIP.validateHost(server_addr) && !server_addr.contains("_")){
+					try {
+						inet = InetAddress.getByName(server_addr);					
+					} catch (UnknownHostException e1) {
 						System.out.println("Enter valid host name");
 						break;
 					}
