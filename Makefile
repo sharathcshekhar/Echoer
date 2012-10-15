@@ -13,7 +13,10 @@ CLASSES = Echoer.java ConnectionStatus.java ValidateIP.java ConnectionListStore.
 default: all
 	
 all:
-	@$(JAVAC) $(FLAGS) $(CLASSES) 
+	@echo "Compiling files..." 	
+	@$(JAVAC) $(FLAGS) $(CLASSES)
+	@echo "Done" 	
 
 clean:
 	@rm -rf *.class
+	@echo "Cleaned up the work space" 	
