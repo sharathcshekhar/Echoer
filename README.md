@@ -44,6 +44,8 @@ Commands of Echoer application:
 	Usage: show
 6. info: Displays info about the system
 	Usage: info
+6. bye: Exits the program gracefully
+	Usage: bye
 
 Additional Info:
 ----------------
@@ -68,3 +70,7 @@ If the network is not connected to Internet, this will fail.
 
 7. UDP connection have a connection timeout of 10 seconds.
 
+8. We are providing an extra feature to the user to gracefully exit the program through bye command. 
+We are taking care of closing all the client sockets and the unclosed server sockets are reclaimed by the OS.
+
+9. Blocking all loopback addresses ranging from 127.0.0.1 to 127.255.255.254 in connect and sendto commands.
