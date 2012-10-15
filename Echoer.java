@@ -151,7 +151,14 @@ public class Echoer {
 						break;
 					}
 				} else {
+					//validate hostname
+					if(!ValidateIP.validateHost(server_addr) && !server_addr.contains("_")){
+						System.out.println("Enter valid host name");
+						break;
+					}
+					
 					 try {
+						 //validate localhost names
 						if(server_addr.equalsIgnoreCase("localhost") ||
 								 server_addr.equalsIgnoreCase(InetAddress.getLocalHost().getHostName())||
 								 server_addr.equalsIgnoreCase(addr.getHostName())) {
@@ -321,6 +328,11 @@ public class Echoer {
 						break;
 					}
 				} else {
+					//validate hostname
+					if(!ValidateIP.validateHost(server_addr) && !server_addr.contains("_")){
+						System.out.println("Enter valid host name");
+						break;
+					}
 					 try {
 						if(server_addr.equalsIgnoreCase("localhost") ||
 								 server_addr.equalsIgnoreCase(InetAddress.getLocalHost().getHostName())||
