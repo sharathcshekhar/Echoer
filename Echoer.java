@@ -25,6 +25,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Iterator;
+import java.util.Formatter;
 
 /**
  * The Class Echoer.
@@ -48,9 +49,12 @@ public class Echoer {
 		}
 
 		int tcpServerPort = ValidateIP.StringtoPort(args[0]);
+		if(tcpServerPort == -1) {
+			System.exit(1);
+		}
 		int udpServerPort = ValidateIP.StringtoPort(args[1]);
-
-		if (tcpServerPort == -1 || udpServerPort == -1) {
+		
+		if(udpServerPort == -1){
 			System.exit(1);
 		}
 		if (tcpServerPort == udpServerPort) {
@@ -137,20 +141,18 @@ public class Echoer {
 							|| server_addr.equals(ValidateIP
 									.getLocalIPAddress().getHostAddress())) {
 						System.out
-								.println("Enter the IP of a different machine");
+								.println("Enter the IP of a remote machine");
 						break;
 					}
 				} else {
-					try {
-						if (server_addr.equals("localhost")
-								|| server_addr.equals(InetAddress
-										.getLocalHost().getHostAddress())) {
-							System.out
-									.println("Enter hostname of a different machine");
-							break;
-						}
+					 try {
+						if(server_addr.equalsIgnoreCase("localhost") ||
+								 server_addr.equalsIgnoreCase(InetAddress.getLocalHost().getHostName())) {
+							 System.out.println("Enter hostname of a remote machine"); 
+							 break;
+						 }
 					} catch (UnknownHostException e) {
-						System.out.println("Unknown localhost. Continuing");
+						System.out.println("Cannot resolve localhost IP. Continuing");
 						break;
 					}
 				}
@@ -167,10 +169,8 @@ public class Echoer {
 							break switchLoop;
 						}
 					} else {
-						if (server_addr.equals(connectionStatusItr
-								.getHostname())) {
-							System.out
-									.println("Please use existing connection, duplicate address not allowed");
+						if(server_addr.equalsIgnoreCase(connectionStatusItr.getHostname())){
+							System.out.println("Please use existing connection, duplicate address not allowed");
 							break switchLoop;
 						}
 					}
@@ -243,8 +243,10 @@ public class Echoer {
 
 				//trim the spaces from user commands
 				String msgToSend = "";
-				msgToSend = usrInput.substring(usrInput.indexOf(" ") + 1);
-				msgToSend = msgToSend.substring(usrInput.indexOf(" ") + 1);
+				msgToSend = usrInput
+						.substring(usrInput.indexOf(" ") + 1);
+				msgToSend = msgToSend
+						.substring(msgToSend.indexOf(" ") + 1);
  
 				try {
 					connectionID = Integer.parseInt(cmd_args[1]);
@@ -345,35 +347,37 @@ public class Echoer {
 					break;
 				}
 				ConnectionStatus connectionItr;
-				if (!connectionListStore.checkEmpty("out"))
-					System.out.println("Outgoing Connections: ");
+				Formatter fmt;
+				if(!connectionListStore.checkEmpty("out")) {
+					System.out.println("Outgoing Connections:\n");
+					fmt = new Formatter();
+					fmt.format("%-13s | %-15s | %-24s | %-10s | %-10s ", "Conn. ID", "IP", "hostname", "local port", "remote port");
+					System.out.println(fmt);
+					System.out.println("-------------------------------------------------------------------------------------");
+				}
 				itr = connectionListStore.getIterator("out");
 				while (itr.hasNext()) {
+					fmt = new Formatter();
 					connectionItr = itr.next();
-					System.out
-							.println("conn. ID |      IP             |     hostname             | local port | remote port\n"
-									+ "------------------------------------------------------------------------------------\n"
-									+ "     "
-									+ connectionItr.getConnectionID()
-									+ "     | "
-									+ connectionItr.getIp()
-									+ "   | "
-									+ connectionItr.getHostname()
-									+ "      | "
-									+ connectionItr.getLocalprt()
-									+ "       | "
-									+ connectionItr.getRemoteport() + "\n");
+					fmt.format("%-13d | %-15s | %-24s | %-10d | %-10d", connectionItr.getConnectionID(), 
+							connectionItr.getIp(), connectionItr.getHostname(), connectionItr.getLocalprt(), 
+							connectionItr.getRemoteport());
+					System.out.println(fmt);
 				}
-				if (!connectionListStore.checkEmpty("in"))
-					System.out.println("Incoming Connections: ");
+				if(!connectionListStore.checkEmpty("in")) {
+					System.out.println("\nIncoming Connections:\n");
+					fmt = new Formatter();
+					fmt.format("%-15s | %-24s | %-10s | %-10s ", "IP", "hostname", "local port", "remote port");
+					System.out.println(fmt);
+					System.out.println("------------------------------------------------------------------------");
+				}
 				itr = connectionListStore.getIterator("in");
 				while (itr.hasNext()) {
+					fmt = new Formatter();
 					connectionItr = itr.next();
-					System.out.println("IP Address=" + connectionItr.getIp()
-							+ "\tHost Name=" + connectionItr.getHostname()
-							+ "\tLocal Port=" + connectionItr.getLocalprt()
-							+ "\tRemote Port=" + connectionItr.getRemoteport()
-							+ " ");
+					fmt.format("%-15s | %-24s | %-10d | %-10d",connectionItr.getIp(), connectionItr.getHostname(), 
+							connectionItr.getLocalprt(), connectionItr.getRemoteport());
+					System.out.println(fmt);
 				}
 				break;
 				
@@ -383,10 +387,10 @@ public class Echoer {
 					System.out.println("Too many arguments to info");
 					break;
 				}
-				System.out.println("IP Address=" + addr.getHostAddress()
-						+ "\tHost Name=" + addr.getHostName() + "\tTCP Port="
-						+ tcpServerPort + "\tUDP Port=" + udpServerPort + " ");
-
+				Formatter info_fmt = new Formatter();
+				info_fmt.format("%-15s %-24s %-10s %-10s\n","IP Address", "Host Name", "TCP Port", "UD Port");
+				info_fmt.format("%-15s %-24s %-10d %-10d", addr.getHostAddress(), addr.getHostName(), tcpServerPort, udpServerPort);
+				System.out.println(info_fmt);
 				break;
 				
 			//Disconnect command starts here
@@ -511,7 +515,8 @@ public class Echoer {
 			//write back to client
 			toClient = new DataOutputStream(clientSocket.getOutputStream());
 		} catch (IOException e) {
-			System.out.println("Unable to connect to create reader or writer");
+			System.out.println("Unable to create reader or writer");
+			return;
 		}
 
 		while (true) {
