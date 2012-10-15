@@ -103,10 +103,8 @@ public class Echoer {
 			System.out.print("Echoer> ");
 			String usrInput = null;
 			try {
-				usrInput = cmdFromUser.readLine().trim(); // trim() deletes
-															// leading and
-															// trailing
-															// whitespace
+				// trim() deletes leading and trailing whitespace
+				usrInput = cmdFromUser.readLine().trim(); 
 			} catch (IOException e) {
 				System.out.println("Cannot parse command, please try again");
 				continue;
@@ -115,9 +113,8 @@ public class Echoer {
 			if (usrInput.length() == 0) {
 				continue;
 			}
-			String[] cmd_args = usrInput.split("\\s+"); // This regex ignores
-														// whitespace between
-														// words
+			// This regex ignores whitespace between words
+			String[] cmd_args = usrInput.split("\\s+"); 
 			cmdEnum cmd;
 			try {
 				cmd = cmdEnum.valueOf(cmd_args[0].toUpperCase());
@@ -136,7 +133,8 @@ public class Echoer {
 				}
 				String server_addr = cmd_args[1];
 				boolean isIP = ValidateIP.validateIP(server_addr);
-				if (isIP) {//check for local ip/hostname
+				if (isIP) {
+					//check for local ip/hostname
 					if (server_addr.equals("127.0.0.1")
 							|| server_addr.equals(ValidateIP
 									.getLocalIPAddress().getHostAddress())) {
@@ -241,7 +239,7 @@ public class Echoer {
 				}
 				System.out.println("Connection ID requested is " + cmd_args[1]);
 
-				//trim the spaces from user commands
+				//Get the message to be sent
 				String msgToSend = "";
 				msgToSend = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
@@ -305,7 +303,7 @@ public class Echoer {
 					break;
 				}
 
-				//trim spaces
+				//Get the message to be sent
 				String msgToSendUDP = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
 				msgToSendUDP = msgToSendUDP
@@ -399,16 +397,18 @@ public class Echoer {
 					System.out.println("Wrong arguments to Disconnect");
 					break;
 				}
+				String tmp_serverIP = null;
 				try {
+					tmp_serverIP = getClientSocketByConnectionID(connectionID).
+							getInetAddress().getHostAddress();
 					connectionID = Integer.parseInt(cmd_args[1]);
 					getClientSocketByConnectionID(connectionID).close();
 				} catch (NumberFormatException Ex) {
 					System.out.println("Invalid ConnectionID");
 					break;
 				} catch (IOException e) {
-					System.out.println("Error connecting");
-					e.printStackTrace();
-					break;
+					System.out.println("Error diconnecting");
+					//Remove the connection ID and continue
 				}
 				Iterator<ConnectionStatus> itrDC = connectionListStore
 						.getIterator("out");
@@ -418,13 +418,13 @@ public class Echoer {
 						itrDC.remove();
 					}
 				}
-
-				// reset outgoing connection count
-				// connectionListStore.resetCount("out");
+				System.out.println("Sucessfully disconnected from Server " + tmp_serverIP);
 				break;
 			
-			//Type BYE command to stop client
+			//Type BYE command to exit the application
 			case BYE:
+				//system.exit(0) will cause a graceful exit by killing all threads within the JVM
+				//Leave the business of reclaiming the unclosed ports to the OS
 				System.exit(0);
 				break;
 			default:
@@ -467,14 +467,15 @@ public class Echoer {
 			System.exit(1);
 		}
 		while (true) {
-			try {//accept client connection
+			try {
+				//server blocks until it receives a connection from client
 				clientSocket = EchoerTCP.accept();
 
 			} catch (IOException e) {
 				System.out.println("Accept failed at " + tcpServerPort);
 				continue;
 			}
-			//start server thread
+			//Handle each client request in a separate thread
 			Thread tcp_serverResp_t = new Thread(new TCPserverResponseThread(
 					clientSocket));
 			tcp_serverResp_t.start();
@@ -529,14 +530,16 @@ public class Echoer {
 				clientMsg = null;
 			}
 			if (clientMsg == null) {
-				System.out.println("Client has disconnected");
+				System.out.println("Client at "+ 
+						clientSocket.getInetAddress().getHostAddress() + 
+						" has disconnected");
 				Iterator<ConnectionStatus> itrDC = connectionListStore
 						.getIterator("in");
 				ConnectionStatus connectionItr;
 				// reset Incoming connections
 				while (itrDC.hasNext()) {
-					connectionItr = itrDC.next();
 					synchronized (connectionListStore) {
+						connectionItr = itrDC.next();
 						if (connectionItr.getIp().equals(
 								clientSocket.getInetAddress().getHostAddress())) {
 							itrDC.remove();

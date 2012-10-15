@@ -1,24 +1,26 @@
 Echoer
-==================================
+======
 A simple Java Peer-Peer Application
 
 Developers: 
-----------------------------------
+----------
 Sharath Chandrashekhara - sc296@buffalo.edu
+
 Sanket Kulkarni - sanketku@buffalo.edu 
-----------------------------------
 
 Department of Computer Science, University at Buffalo
+----------------------------------
 
 CSE 589 Project - 1
 
 About Echoer: 
+------------
 Echoer is a simple Application which echoes the messages it gets on the TCP and UDP connections
 Echoer can also make TCP/UDP connection to other Echoer applications running on remote machies
 and send messages
 
 Instructions to Build and Run Echoer:
-
+------------------------------------
 1. cd in to root directory of the application and run "make"
 2. Step 1 will generate *.class files
 3. To run the application Enter the belwo command:
@@ -28,6 +30,7 @@ The port numbers should be in the range of 1025 - 655434.
 5. To quit the application use the command "bye"
 
 Commands of Echoer application:
+-------------------------------
 
 1. connect: Establish a TCP connection with a remote machine
 	Usage: connect remote_ip_address port_number
@@ -43,6 +46,7 @@ Commands of Echoer application:
 	Usage: info
 
 Additional Info:
+----------------
 
 1. After making a TCP connection to a server, if the Server ends the sessions abruptly, the client continues to show the connection in the show.
 The connection would be removed only after the client tries to make a unsucessful send command
