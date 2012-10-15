@@ -4,7 +4,7 @@
  * CSE 589 Project - 1 
  * 
  * Authors: 	Sharath Chandrashekhara - sc296@buffalo.edu
- * 				Sanketh Kulkarni		- sanketh@buffalo.edu
+ * 				Sanket Kulkarni			- sanketku@buffalo.edu
  * 
  * Date: 14th October, 2012
  * 
