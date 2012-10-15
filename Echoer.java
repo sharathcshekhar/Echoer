@@ -4,7 +4,7 @@
  * CSE 589 Project - 1 
  * 
  * Authors: 	Sharath Chandrashekhara - sc296@buffalo.edu
- * 				Sanketh Kulkarni		- sanketh@buffalo.edu
+ * 				Sanket Kulkarni			- sanketku@buffalo.edu
  * 
  * Date: 14th October, 2012
  * 
@@ -30,7 +30,6 @@ public class Echoer {
 	private static ConnectionListStore connectionListStore = new ConnectionListStore();
 	
 	public static void main(String[] args) {
-		int counterOutConnections = 0;
 		if(args.length != 2) {
 			System.out.println("Incorrect number of arguments. Usage: \"java Echoer 4242 4343\"");
 			System.exit(1);
@@ -164,8 +163,6 @@ public class Echoer {
 				}
 				System.out.println("Connected with server at : "+server_addr);
 				ConnectionStatus connectionStatus = new ConnectionStatus();
-				counterOutConnections++;
-				connectionStatus.setConnectionID(counterOutConnections);
 				connectionStatus.setHostname(clientSocket.getInetAddress()
 						.getHostName());
 				connectionStatus.setIp(clientSocket.getInetAddress()
@@ -174,7 +171,31 @@ public class Echoer {
 				connectionStatus.setLocalprt(clientSocket.getLocalPort());
 				connectionStatus.setClientSocket(clientSocket);
 				// add connection status to list
-				connectionListStore.getOutGoingConnections().add(connectionStatus);
+				
+				boolean bool = false;
+				if(connectionListStore.getOutGoingConnections().size() == 0){
+					connectionStatus.setConnectionID(1);
+					connectionListStore.getOutGoingConnections().add(0, connectionStatus);
+					break;
+				}
+				else{
+				int i=1;
+				Iterator<ConnectionStatus> itrD = connectionListStore.getIterator("out");
+				while (itrD.hasNext()) {
+					ConnectionStatus connectionItr = itrD.next();
+					if (connectionItr.getConnectionID() != i) {
+						connectionStatus.setConnectionID(i);
+						connectionListStore.getOutGoingConnections().add(i-1,connectionStatus);
+						bool = true;
+						break switchLoop;
+					}
+					i++;
+				}
+				}
+				if(!bool){
+					connectionStatus.setConnectionID(connectionListStore.getOutGoingConnections().size()+1);
+					connectionListStore.getOutGoingConnections().add(connectionStatus);
+				}
 				break;
 			case SEND:
 				if(cmd_args.length < 3)
@@ -222,8 +243,6 @@ public class Echoer {
 						ConnectionStatus connectionItr = itrDC.next();
 						if (connectionItr.getConnectionID() == connectionID) {
 							itrDC.remove();
-							if(counterOutConnections>0)
-							counterOutConnections--;
 						}
 					}
 					break;
@@ -340,13 +359,11 @@ public class Echoer {
 					connectionItr = itrDC.next();
 					if (connectionItr.getConnectionID() == connectionID) {
 						itrDC.remove();
-						if(counterOutConnections>0)
-						counterOutConnections--;
 					}
 				}
 				
 				//reset outgoing connection count
-				connectionListStore.resetCount("out");
+				//connectionListStore.resetCount("out");
 				break;
 			case BYE:
 				System.exit(0);
