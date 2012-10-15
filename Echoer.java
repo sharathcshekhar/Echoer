@@ -144,9 +144,11 @@ public class Echoer {
 				server_addr = cmd_args[1];
 				isIP = ValidateIP.validateIP(server_addr);
 				if (isIP) {
-					//check for local ip/hostname
-					if (server_addr.equals("127.0.0.1")
-							|| server_addr.equals(addr.getHostAddress())) {
+					/* 
+					 * check for local ip/hostname
+					 */
+					if (server_addr.startsWith("127.") || //block all IPs from 127.0.0.1 to 127.255.255.254
+							server_addr.equals(addr.getHostAddress())) {
 						System.out
 								.println("Enter the IP of a remote machine");
 						break;
@@ -324,8 +326,8 @@ public class Echoer {
 				isIP = ValidateIP.validateIP(server_addr);
 				if (isIP) {
 					//check for local ip/hostname
-					if (server_addr.equals("127.0.0.1")
-							|| server_addr.equals(addr.getHostAddress())) {
+					if (server_addr.startsWith("127.") || //block all IPs from 127.0.0.1 to 127.255.255.254
+							server_addr.equals(addr.getHostAddress())) {
 						System.out
 								.println("Enter the IP of a remote machine");
 						break;
@@ -549,7 +551,7 @@ public class Echoer {
 			System.out.println("TCP Socket already in use.");
 			System.exit(1);
 		} catch (IOException e) {
-			System.out.println("Accept failed at " + tcpServerPort);
+			System.out.println("Failed to start TCP server at " + tcpServerPort);
 			System.exit(1);
 		}
 		while (true) {
@@ -662,7 +664,7 @@ public class Echoer {
 	/**
 	 * UDP server thread.
 	 *
-	 * @param UDPport the uD pport
+	 * @param UDPport the UDP port
 	 */
 	public static void UDPServerThread(int UDPport) {
 		System.out.println("Starting UDP Server at port " + UDPport);
