@@ -129,16 +129,19 @@ public class Echoer {
 			}
 			int connectionID = 0;
 			Socket sessionSocket = null;
-			switchLoop: switch (cmd) {
+			boolean isIP = false;
+			String server_addr = null;
+			int portNo = 0;
 			
+			switchLoop: switch (cmd) {
 			//connect command start here
 			case CONNECT:
 				if (cmd_args.length != 3) {
 					System.out.println("Wrong arguments to connect");
 					break;
 				}
-				String server_addr = cmd_args[1];
-				boolean isIP = ValidateIP.validateIP(server_addr);
+				server_addr = cmd_args[1];
+				isIP = ValidateIP.validateIP(server_addr);
 				if (isIP) {
 					//check for local ip/hostname
 					if (server_addr.equals("127.0.0.1")
@@ -187,7 +190,7 @@ public class Echoer {
 					}
 				}
 				//validate port
-				int portNo = ValidateIP.StringtoPort(cmd_args[2]);
+				portNo = ValidateIP.StringtoPort(cmd_args[2]);
 				if (portNo == -1) {
 					break;
 				}
@@ -306,15 +309,36 @@ public class Echoer {
 					System.out.println("Invalid arguments to sendto");
 					break;
 				}
-				if (!ValidateIP.validateIP(cmd_args[1])) {
-					System.out.println("Invalid IPv4 format");
+				/* checks for local connections */
+				server_addr = cmd_args[1];
+				isIP = ValidateIP.validateIP(server_addr);
+				if (isIP) {
+					//check for local ip/hostname
+					if (server_addr.equals("127.0.0.1")
+							|| server_addr.equals(addr.getHostAddress())) {
+						System.out
+								.println("Enter the IP of a remote machine");
+						break;
+					}
+				} else {
+					 try {
+						if(server_addr.equalsIgnoreCase("localhost") ||
+								 server_addr.equalsIgnoreCase(InetAddress.getLocalHost().getHostName())||
+								 server_addr.equalsIgnoreCase(addr.getHostName())) {
+							 System.out.println("Enter hostname of a remote machine"); 
+							 break;
+						 }
+					} catch (UnknownHostException e) {
+						System.out.println("Cannot resolve localhost IP. Continuing");
+						break;
+					}
+				}
+				/* end of checks for local connections */
+				
+				portNo = ValidateIP.StringtoPort(cmd_args[2]);
+				if (portNo == -1) {
 					break;
 				}
-				int port = ValidateIP.StringtoPort(cmd_args[2]);
-				if (port == -1) {
-					break;
-				}
-
 				//Get the message to be sent
 				String msgToSendUDP = usrInput
 						.substring(usrInput.indexOf(" ") + 1);
@@ -325,28 +349,31 @@ public class Echoer {
 
 				byte[] receiveData = new byte[1024];
 				byte[] sendData = new byte[1024];
+				DatagramSocket clientUDPSocket = null;
 				try {
 					//generate UDP packet and send
-					DatagramSocket clientUDPSocket = new DatagramSocket();
+					clientUDPSocket = new DatagramSocket();
 					InetAddress IPAddress = InetAddress.getByName(cmd_args[1]);
 
 					sendData = msgToSendUDP.getBytes();
 					DatagramPacket sendPacket = new DatagramPacket(sendData,
-							sendData.length, IPAddress, port);
+							sendData.length, IPAddress, portNo);
 					clientUDPSocket.send(sendPacket);
 					DatagramPacket receivePacket = new DatagramPacket(
 							receiveData, receiveData.length);
-					clientUDPSocket.setSoTimeout(3000);
+					clientUDPSocket.setSoTimeout(10000);
 					clientUDPSocket.receive(receivePacket);
 					String reply = new String(receivePacket.getData());
-					System.out.println("Server replied with " + reply);
+					System.out.println("Server at " + clientUDPSocket.getInetAddress().getHostAddress() + " replied with " + reply);
 				} catch (SocketTimeoutException e) {
 					System.out
-							.println("Received a timeout after 3 seconds while sending UDP message to server. Verify the port number and try again.");
+							.println("Received a timeout after 10 seconds while sending UDP message to server. Verify the port number and try again.");
 					break;
 				} catch (IOException e) {
 					System.out.println("Error while contacting Server");
 					break;
+				} finally {
+					clientUDPSocket.close();
 				}
 				break;
 			
@@ -411,7 +438,7 @@ public class Echoer {
 					break;
 				}
 				Formatter info_fmt = new Formatter();
-				info_fmt.format("%-15s %-24s %-10s %-10s\n","IP Address", "Host Name", "TCP Port", "UD Port");
+				info_fmt.format("%-15s %-24s %-10s %-10s\n","IP Address", "Host Name", "TCP Port", "UDP Port");
 				info_fmt.format("%-15s %-24s %-10d %-10d", addr.getHostAddress(), hostname, tcpServerPort, udpServerPort);
 				System.out.println(info_fmt);
 				break;
@@ -519,7 +546,7 @@ public class Echoer {
 	 * @param clientSocket the client socket
 	 */
 	public static void TCPserverResponse(Socket clientSocket) {
-		System.out.println("Got connection request from "
+		System.out.println("Got TCP connection request from "
 				+ clientSocket.getInetAddress().getHostAddress());
 
 		int counterInConnections = 0;
@@ -587,7 +614,7 @@ public class Echoer {
 			}
 			System.out.println("Echoing " + clientMsg + " to: IP = "
 					+ clientSocket.getInetAddress().getHostAddress()
-					+ "Type = TCP");
+					+ " Type = TCP");
 			try {
 				toClient.writeBytes(clientMsg + '\n');
 			} catch (IOException e) {
@@ -632,7 +659,7 @@ public class Echoer {
 			String clientMsg = new String(receivePacket.getData());
 
 			InetAddress IPAddress = receivePacket.getAddress();
-			System.out.println("Got connection request from "
+			System.out.println("Got UDP connection request from "
 					+ IPAddress.getHostAddress());
 
 			int port = receivePacket.getPort();
