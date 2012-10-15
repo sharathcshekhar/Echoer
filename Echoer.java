@@ -495,8 +495,19 @@ public class Echoer {
 			
 			//Type BYE command to exit the application
 			case BYE:
+				synchronized (connectionListStore) {
+					Iterator<ConnectionStatus> itrD = connectionListStore
+							.getIterator("out");
+					while (itrD.hasNext()) {
+						try {//close all client ports
+							//Leave the business of reclaiming the unclosed server ports to the OS
+							getClientSocketByConnectionID(itrD.next().getConnectionID()).close();
+						} catch (IOException e) {
+							continue;
+						}
+					}
+				}
 				//system.exit(0) will cause a graceful exit by killing all threads within the JVM
-				//Leave the business of reclaiming the unclosed ports to the OS
 				System.exit(0);
 				break;
 			default:
