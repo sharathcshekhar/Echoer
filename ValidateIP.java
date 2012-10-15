@@ -40,7 +40,7 @@ public class ValidateIP {
 			+ "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
 	
 	/** The Host name_ pattern. */
-	private static String HostName_Pattern = "[A-Za-z0-9]+(?:-[A-Za-z0-9]" +
+	private static String HostName_Pattern = "[\\w]+(?:-[A-Za-z0-9]" +
 			"+)*(?:\\.[A-Za-z0-9]" +
 			"+(?:-[A-Za-z0-9]+)*)*";
 
@@ -56,19 +56,7 @@ public class ValidateIP {
 		matcher = pattern.matcher(ip);
 		return matcher.matches();
 	}
-	
-	
-	/**
-	 * Validate host.
-	 *
-	 * @param host the host
-	 * @return true, if successful
-	 */
-	public static boolean validateHost(final String host) {
-		pattern = Pattern.compile(HostName_Pattern);
-		matcher = pattern.matcher(host);
-		return matcher.matches();
-	}
+
 
 	/**
 	 * Gets the local ip address.
