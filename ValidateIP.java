@@ -21,22 +21,35 @@ import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class ValidateIP.
+ */
 public class ValidateIP {
 
+	/** The pattern. */
 	private static Pattern pattern;
+	
+	/** The matcher. */
 	private static Matcher matcher;
 
+	/** The Constant IP_PATTERN. */
 	private static final String IP_PATTERN = "^([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
 			+ "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
 			+ "([01]?\\d\\d?|2[0-4]\\d|25[0-5])\\."
 			+ "([01]?\\d\\d?|2[0-4]\\d|25[0-5])$";
 	
+	/** The Host name_ pattern. */
 	private static String HostName_Pattern = "[A-Za-z0-9]+(?:-[A-Za-z0-9]" +
 			"+)*(?:\\.[A-Za-z0-9]" +
 			"+(?:-[A-Za-z0-9]+)*)*";
 
-	/*
-	 * validate ip and return true or false
+	
+	/**
+	 * Validate ip.
+	 *
+	 * @param ip the ip
+	 * @return true, if successful
 	 */
 	public static boolean validateIP(final String ip) {
 		pattern = Pattern.compile(IP_PATTERN);
@@ -44,8 +57,12 @@ public class ValidateIP {
 		return matcher.matches();
 	}
 	
-	/*
-	 * validate host and return true or false
+	
+	/**
+	 * Validate host.
+	 *
+	 * @param host the host
+	 * @return true, if successful
 	 */
 	public static boolean validateHost(final String host) {
 		pattern = Pattern.compile(HostName_Pattern);
@@ -53,6 +70,11 @@ public class ValidateIP {
 		return matcher.matches();
 	}
 
+	/**
+	 * Gets the local ip address.
+	 *
+	 * @return the local ip address
+	 */
 	public static InetAddress getLocalIPAddress() {
 		InetAddress IP = null;
 		if(!System.getProperty("os.name").contains("Windows")){
@@ -96,6 +118,12 @@ public class ValidateIP {
 		}
 	}
 
+	/**
+	 * Stringto port.
+	 *
+	 * @param s the s
+	 * @return the int
+	 */
 	public static int StringtoPort(String s)
 	{
 		int port;
