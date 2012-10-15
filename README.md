@@ -64,7 +64,7 @@ The connection would be removed only after the client tries to make a unsucessfu
 5. The IP address of the Local machine is obtained by making a DNS call to the google public DNS machine. 
 If the network is not connected to Internet, this will fail.
 
-6. The TCP connections made have a default timeout of 1 min. This is not changed.
+6. The TCP connections made, have a default connection timeout of 1 min. This is not changed.
 
-7. UDP connection have a timeout of 10 seconds.
+7. UDP connection have a connection timeout of 10 seconds.
 
