@@ -136,6 +136,7 @@ public class Echoer {
 			switchLoop: switch (cmd) {
 			//connect command start here
 			case CONNECT:
+				@SuppressWarnings("unused")
 				InetAddress inet = null;
 				if (cmd_args.length != 3) {
 					System.out.println("Wrong arguments to connect");
@@ -218,7 +219,7 @@ public class Echoer {
 				}
 			
 				//fill the connection status objects which maintains the status of each tcp connection
-				System.out.println("Connected with server at : " + server_addr);
+				System.out.println("Connected with server at: " + server_addr);
 				ConnectionStatus connectionStatus = new ConnectionStatus();
 				connectionStatus.setHostname(clientSocket.getInetAddress()
 						.getHostName());
@@ -383,7 +384,7 @@ public class Echoer {
 					clientUDPSocket.setSoTimeout(10000);
 					clientUDPSocket.receive(receivePacket);
 					String reply = new String(receivePacket.getData());
-					System.out.println("Server at " + clientUDPSocket.getInetAddress().getHostAddress() + " replied with " + reply);
+					System.out.println("Server at " + IPAddress.getHostAddress() + " replied with " + reply);
 				} catch (SocketTimeoutException e) {
 					System.out
 							.println("Received a timeout after 10 seconds while sending UDP message to server. Verify the port number and try again.");
@@ -675,9 +676,10 @@ public class Echoer {
 			System.out.println("UDP Socket already in use.");
 			System.exit(0);
 		}
-		byte[] receiveData = new byte[1024];
-		byte[] sendData = new byte[1024];
+		
 		while (true) {
+			byte[] receiveData = new byte[1024];
+			byte[] sendData = new byte[1024];			
 			DatagramPacket receivePacket = new DatagramPacket(receiveData,
 					receiveData.length);
 			try {
